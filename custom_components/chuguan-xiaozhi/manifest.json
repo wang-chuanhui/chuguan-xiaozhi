@@ -1,0 +1,18 @@
+{
+  "domain": "chuguan-xiaozhi",
+  "name": "ChuGuan XiaoZhi",
+  "codeowners": [
+    "@wang-chuanhui"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/wang-chuanhui/chuguan_xiaozhi",
+  "issue_tracker": "https://github.com/wang-chuanhui/chuguan_xiaozhi/issues",
+  "homekit": {},
+  "integration_type": "hub",
+  "iot_class": "cloud_push",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "version": "1.0.0"
+}
