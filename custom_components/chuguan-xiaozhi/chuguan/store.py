@@ -11,9 +11,6 @@ class MyStore:
         self.hass = hass
         self.mac = get_main_mac()
         self.store = Store(hass, STORAGE_VERSION, f"chuguan-xiaozhi.{self.mac}")
-        hass.data[DOMAIN] = {
-            self.mac: self.store,
-        }
 
     async def async_get_api_key(self):
         """Get api key from store"""

@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 class Hub:
     """Chuguan Xiaozhi Hub"""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntries):
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntries | None):
         self.hass = hass
         self.entry = entry
         self.later_update_cancel = None

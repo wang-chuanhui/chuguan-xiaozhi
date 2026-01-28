@@ -4,12 +4,12 @@
   "codeowners": [
     "@wang-chuanhui"
   ],
-  "config_flow": true,
+  "config_flow": false,
   "dependencies": [],
   "documentation": "https://github.com/wang-chuanhui/chuguan_xiaozhi",
   "issue_tracker": "https://github.com/wang-chuanhui/chuguan_xiaozhi/issues",
   "homekit": {},
-  "integration_type": "hub",
+  "integration_type": "system",
   "iot_class": "cloud_push",
   "requirements": [],
   "ssdp": [],

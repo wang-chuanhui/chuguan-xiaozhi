@@ -7,6 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 import logging
 from .chuguan.hub import Hub
+from .chuguan.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +17,20 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = []
 
 type HubConfigEntry = ConfigEntry[Hub]
+
+async def async_setup(hass: HomeAssistant, config: dict):
+    """Set up chuguan_home from a config entry."""
+    hub = Hub(hass, None)
+    try:
+        await hub.setup()
+        hass.data[DOMAIN] = {
+            "hub": hub,
+        }
+        return True
+    except Exception as e:
+        hub.stop()
+        _LOGGER.error("start failed %s", e)
+        raise ConfigEntryAuthFailed from e
 
 # TODO Update entry annotation
 async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
