@@ -66,3 +66,20 @@ class MyStore:
             "expire_time": expire_time,
         }
         await self.store.async_save(stored_data)
+
+    async def async_get_host(self):
+        """Get host from store"""
+        stored_data = await self.store.async_load()
+        if isinstance(stored_data, dict) == False:
+            stored_data = {}
+        if stored_data:
+            return stored_data.get("host", None)
+        return None
+    
+    async def async_set_host(self, host: str):
+        """Set host to store"""
+        stored_data = await self.store.async_load()
+        if isinstance(stored_data, dict) == False:
+            stored_data = {}
+        stored_data["host"] = host
+        await self.store.async_save(stored_data)

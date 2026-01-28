@@ -17,6 +17,11 @@ from datetime import timedelta
 from .store import MyStore
 from .const import ACCESS_TOKEN_EXPIRATION_DAYS, ACCESS_TOKEN_UPDATE_DAYS
 from homeassistant.helpers.event import async_track_time_interval
+import pyqrcode
+import base64
+import io
+from homeassistant.components import persistent_notification
+from PIL import Image, ImageOps
 
 PLATFORMS = [Platform.ALARM_CONTROL_PANEL, Platform.BUTTON, Platform.CLIMATE, Platform.CAMERA, Platform.COVER, Platform.FAN, Platform.HUMIDIFIER, Platform.LAWN_MOWER, Platform.LIGHT, Platform.LOCK, Platform.MEDIA_PLAYER, Platform.SCENE, Platform.SIREN, Platform.SWITCH, Platform.VACUUM, Platform.VALVE, Platform.WATER_HEATER]
 _LOGGER = logging.getLogger(__name__)
@@ -107,6 +112,7 @@ class Hub:
         access_token = await self.setup_refresh_token()
         stored_data = await self.store.async_get_devices()
         api_key = await self.store.async_get_api_key()
+        await self.check_host()
         if stored_data == update_entities and api_key == access_token:
             _LOGGER.info("No update entities")
             return
@@ -194,3 +200,64 @@ class Hub:
         access_token = token["access_token"]
         return refresh_token, access_token
 
+    async def check_host(self):
+        """Check host"""
+        try:
+            """Check host"""
+            message = json.dumps({"action": "host"}, ensure_ascii=False)
+            res = await send_messages(message)
+            if res is None:
+                return False
+            if not res.success:
+                return False
+            if res.data is None:
+                return False
+            if isinstance(res.data, str):
+                await self.send_host_notification(res.data)
+                await self.store.async_set_host(res.data)
+                return True
+        except Exception as e:
+            _LOGGER.error("check host failed %s", e)
+            return False
+        return True
+    
+    async def send_host_notification(self, host: str):
+        """Send host notification"""
+        _LOGGER.info("send host notification %s", host)
+        # 1. 准备内容
+        qr_content = host
+        
+        # 2. 生成二维码对象
+        qr = pyqrcode.create(qr_content)
+
+        # 1. 生成 XBM 数据
+        xbm_str = qr.xbm(scale=10)
+        
+        # 2. 用 Pillow 加载 XBM (此时可能是白字黑底或透明)
+        raw_img = Image.open(io.BytesIO(xbm_str.encode()))
+        
+        # --- 核心修正点在这里 ---
+        # 将图像模式转为 L (灰度)，方便进行反转操作
+        raw_img = raw_img.convert("L")
+        # 执行反转：黑变白，白变黑
+        raw_img = ImageOps.invert(raw_img)
+
+        # 5. 导出 Base64
+        buffer = io.BytesIO()
+        raw_img.save(buffer, format="PNG")
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+
+        # 4. 发送通知（使用最基础的 img 标签，不加复杂 style）
+        message = (
+            f"`{qr_content}/lovelace/0`\n\n"
+            "扫描二维码访问\n\n"
+            f'<img src="data:image/png;base64,{img_str}" width="300px" height="300px" style="display: block; margin: 0 auto;" />'
+        )
+
+        # 6. 发送持久通知
+        persistent_notification.async_create(
+            self.hass,
+            message=message,
+            title="系统地址",
+            notification_id="home_assistant_host_notification"
+        )
