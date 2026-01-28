@@ -15,7 +15,7 @@ from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig,
 import uuid
 import string
 import random
-from .chuguan.hub import DOMAIN
+from .chuguan.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

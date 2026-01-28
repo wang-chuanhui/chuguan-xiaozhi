@@ -33,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
     hub = Hub(hass, entry)
     try:
         entry.runtime_data = hub
-        hub.setup()
+        await hub.setup()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         return True
     except Exception as e:
