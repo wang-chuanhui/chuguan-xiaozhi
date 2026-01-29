@@ -204,22 +204,33 @@ class Hub:
         """Check host"""
         try:
             """Check host"""
-            message = json.dumps({"action": "host"}, ensure_ascii=False)
-            res = await send_messages(message)
-            if res is None:
-                return False
-            if not res.success:
-                return False
-            if res.data is None:
-                return False
-            if isinstance(res.data, str):
-                await self.send_host_notification(res.data)
-                await self.store.async_set_host(res.data)
-                return True
+            host = await self.get_host()
+            await self.send_host_notification(host)
+            return True
         except Exception as e:
             _LOGGER.error("check host failed %s", e)
             return False
-        return True
+    
+    async def get_host(self):
+        """Get host"""
+        """Check host"""
+        old_host = await self.store.async_get_host()
+        try:
+            message = json.dumps({"action": "host"}, ensure_ascii=False)
+            res = await send_messages(message)
+            if res is None:
+                return old_host
+            if not res.success:
+                return old_host
+            if res.data is None:
+                return old_host
+            if isinstance(res.data, str):
+                await self.store.async_set_host(res.data)
+                return res.data
+            return old_host
+        except Exception as e:
+            _LOGGER.error("get host failed %s", e)
+            return old_host
     
     async def send_host_notification(self, host: str):
         """Send host notification"""
