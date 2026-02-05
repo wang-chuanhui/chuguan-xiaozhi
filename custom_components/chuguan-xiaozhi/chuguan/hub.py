@@ -5,7 +5,7 @@ from homeassistant.helpers.typing import NoEventData
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.helpers.device_registry import EventDeviceRegistryUpdatedData, async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, EVENT_ENTITY_REGISTRY_UPDATED, EventEntityRegistryUpdatedData
-from homeassistant.helpers.area_registry import async_get as async_get_area_registry
+from homeassistant.helpers.area_registry import async_get as async_get_area_registry, EVENT_AREA_REGISTRY_UPDATED, EventAreaRegistryUpdatedData
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_call_later
 import logging
@@ -23,7 +23,7 @@ import io
 from homeassistant.components import persistent_notification
 from PIL import Image, ImageOps
 
-PLATFORMS = [Platform.ALARM_CONTROL_PANEL, Platform.BUTTON, Platform.CLIMATE, Platform.CAMERA, Platform.COVER, Platform.FAN, Platform.HUMIDIFIER, Platform.LAWN_MOWER, Platform.LIGHT, Platform.LOCK, Platform.MEDIA_PLAYER, Platform.SCENE, Platform.SIREN, Platform.SWITCH, Platform.VACUUM, Platform.VALVE, Platform.WATER_HEATER]
+PLATFORMS = [Platform.ALARM_CONTROL_PANEL, Platform.BUTTON, Platform.CLIMATE, Platform.COVER, Platform.FAN, Platform.HUMIDIFIER, Platform.LAWN_MOWER, Platform.LIGHT, Platform.LOCK, Platform.MEDIA_PLAYER, Platform.SCENE, Platform.SIREN, Platform.SWITCH, Platform.VACUUM, Platform.VALVE, Platform.WATER_HEATER]
 _LOGGER = logging.getLogger(__name__)
 
 class Hub:
@@ -57,12 +57,14 @@ class Hub:
         self.hass.bus._async_remove_listener(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
         self.hass.bus._async_remove_listener(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
         self.hass.bus._async_remove_listener(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
+        self.hass.bus._async_remove_listener(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
         self.remove_interval_update()
 
     async def setup(self):
         self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
         self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
         self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
+        self.hass.bus.async_listen(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
         self.setup_later_update()
 
     def setup_later_update(self):
@@ -88,6 +90,12 @@ class Hub:
     def _on_entity_registry_updated(self, ev: Event[EventEntityRegistryUpdatedData]):
         """Handle entity registry updated event."""
         _LOGGER.info("Entity registry updated: %s", ev)
+        self.update_entities()
+
+    @callback
+    def _on_area_registry_updated(self, ev: Event[EventAreaRegistryUpdatedData]):
+        """Handle area registry updated event."""
+        _LOGGER.info("Area registry updated: %s", ev)
         self.update_entities()
 
     def interval_update_entities(self, now: datetime):
