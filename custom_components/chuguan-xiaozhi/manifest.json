@@ -11,7 +11,7 @@
   "homekit": {},
   "integration_type": "system",
   "iot_class": "cloud_push",
-  "requirements": [],
+  "requirements": ["PyQRCode==1.2.1"],
   "ssdp": [],
   "zeroconf": [],
   "version": "1.0.0"
