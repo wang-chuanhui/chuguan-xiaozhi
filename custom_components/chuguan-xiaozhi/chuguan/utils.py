@@ -30,8 +30,9 @@ def get_main_mac():
 
 async def send_messages(message: str):
     """Upload entities"""
-    reader, writer = await asyncio.open_unix_connection("/tmp/frpc_loader.sock")
+    writer = None
     try:
+        reader, writer = await asyncio.open_unix_connection("/tmp/frpc_loader.sock")
         writer.write(message.encode())
         await writer.drain()   # 确保发送出去
         writer.write_eof()     # 相当于 shutdown(SHUT_WR)
@@ -40,6 +41,9 @@ async def send_messages(message: str):
         _LOGGER.info(res)
         obj = SockResponse.model_validate_json(res)
         return obj
+    except Exception as e:
+        _LOGGER.error(f"write to /tmp/frpc_loader.sock error: {e}")
     finally:
-        writer.close()
-        await writer.wait_closed()
+        if writer is not None:
+            writer.close()
+            await writer.wait_closed()
