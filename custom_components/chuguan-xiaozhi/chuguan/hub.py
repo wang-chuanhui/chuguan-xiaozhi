@@ -243,6 +243,8 @@ class Hub:
     async def send_host_notification(self, host: str):
         """Send host notification"""
         _LOGGER.info("send host notification %s", host)
+        if host is None:
+            return
         # 1. 准备内容
         qr_content = host
         
