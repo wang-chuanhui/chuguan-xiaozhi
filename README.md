@@ -1,4 +1,4 @@
-# Chuguan Home
+# Chuguan XiaoZhi
 
 [![Release][releaseBadge]][releaseUrl]
 
@@ -7,9 +7,9 @@
 ## 🚀 **Get Started in Minutes!**
 
 
-1. Install ChuGuan Home
+1. Install ChuGuan XiaoZhi
 
-    [![Open in HACS at your Home Assistant instance.][hacsBadge]][ChuGuanStrategyHacs]
+    [![Open in HACS at your Home Assistant instance.][hacsBadge]][ChuGuanXiaoZhiHacs]
 
    
 ---
@@ -19,9 +19,9 @@
 
 <!-- Badge References -->
 
-[releaseBadge]: https://img.shields.io/github/v/tag/wang-chuanhui/chuguan_home?filter=v1.0.0&label=Release
+[releaseBadge]: https://img.shields.io/github/v/tag/wang-chuanhui/chuguan-xiaozhi?filter=v1.0.1&label=Release
 
 <!-- Repository References -->
 
-[releaseUrl]: https://github.com/wang-chuanhui/chuguan_home/releases/tag/v1.0.0
-[ChuGuanStrategyHacs]: https://my.home-assistant.io/redirect/hacs_repository/?owner=wang-chuanhui&repository=chuguan_home&category=integration
+[releaseUrl]: https://github.com/wang-chuanhui/chuguan-xiaozhi/releases/tag/v1.0.1
+[ChuGuanXiaoZhiHacs]: https://my.home-assistant.io/redirect/hacs_repository/?owner=wang-chuanhui&repository=chuguan-xiaozhi&category=integration
