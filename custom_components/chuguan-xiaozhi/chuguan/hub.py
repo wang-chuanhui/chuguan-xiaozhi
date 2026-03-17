@@ -1,13 +1,14 @@
 from homeassistant.core import HomeAssistant, callback, Event
 from homeassistant.config_entries import ConfigEntries
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.typing import NoEventData
+from homeassistant.helpers.typing import NoEventData, ConfigType
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.helpers.device_registry import EventDeviceRegistryUpdatedData, async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, EVENT_ENTITY_REGISTRY_UPDATED, EventEntityRegistryUpdatedData
 from homeassistant.helpers.area_registry import async_get as async_get_area_registry, EVENT_AREA_REGISTRY_UPDATED, EventAreaRegistryUpdatedData
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_call_later
+from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
 import logging
 from homeassistant.const import Platform
 from datetime import datetime
@@ -58,6 +59,7 @@ class Hub:
         self.hass.bus._async_remove_listener(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
         self.hass.bus._async_remove_listener(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
         self.hass.bus._async_remove_listener(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
+        self.hass.bus._async_remove_listener(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
         self.remove_interval_update()
 
     async def setup(self):
@@ -65,6 +67,7 @@ class Hub:
         self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
         self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
         self.hass.bus.async_listen(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
+        self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
         self.setup_later_update()
 
     def setup_later_update(self):
@@ -79,6 +82,18 @@ class Hub:
         _LOGGER.info("Home assistant started: %s", ev)
         self.update_entities()
         # self.setup_later_update()
+
+    @callback
+    async def _on_core_config_updated(self, ev: Event[ConfigType]):
+        """Handle core config updated event."""
+        self.hass.config
+        data = ev.data
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        if latitude is not None and longitude is not None:
+             config_entries = self.hass.config_entries.async_entries('open_meteo')
+             for config_entry in config_entries:
+                 res = await self.hass.config_entries.async_reload(config_entry.entry_id)
 
     @callback
     def _on_device_registry_updated(self, ev: Event[EventDeviceRegistryUpdatedData]):
