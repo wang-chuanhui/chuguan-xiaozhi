@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from homeassistant.core import HomeAssistant, callback, Event
 from homeassistant.config_entries import ConfigEntries
 from homeassistant.helpers import device_registry as dr
@@ -36,6 +37,8 @@ class Hub:
         self.later_update_cancel = None
         self.interval_update_cancel = None
         self.store = MyStore(hass)
+        self.isSendNotification = False
+        self.host = ""
         if self.hass.state == "running":
             self.update_entities()
 
@@ -228,11 +231,18 @@ class Hub:
         try:
             """Check host"""
             host = await self.get_host()
+            self.setHost(host)
             await self.send_host_notification(host)
             return True
         except Exception as e:
             _LOGGER.error("check host failed %s", e)
             return False
+        
+    def setHost(self, host: str):
+        if self.host == host:
+            return
+        self.host = host
+        self.hass.bus.fire("home_assistant_host_changed", host)
     
     async def get_host(self):
         """Get host"""
@@ -260,8 +270,14 @@ class Hub:
         _LOGGER.info("send host notification %s", host)
         if host is None:
             return
+        if self.isSendNotification:
+            return
+        
         # 1. 准备内容
-        qr_content = host
+        params = {
+            "address": host
+        }
+        qr_content = "https://xcx.chuguankj.com/haapi/public/address.html?" + urlencode(params)
         
         # 2. 生成二维码对象
         qr = pyqrcode.create(qr_content)
@@ -285,7 +301,7 @@ class Hub:
 
         # 4. 发送通知（使用最基础的 img 标签，不加复杂 style）
         message = (
-            f"`{qr_content}/lovelace/0`\n\n"
+            f"`{host}`\n\n"
             "扫描二维码访问\n\n"
             f'<img src="data:image/png;base64,{img_str}" width="300px" height="300px" style="display: block; margin: 0 auto;" />'
         )
@@ -297,3 +313,4 @@ class Hub:
             title="系统地址",
             notification_id="home_assistant_host_notification"
         )
+        # self.isSendNotification = True
