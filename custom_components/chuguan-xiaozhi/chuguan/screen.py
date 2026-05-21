@@ -29,6 +29,23 @@ def get_brightness():
         
     return 100
 
+def no_sudo_get_brightness():
+    try:
+        # 执行 sudo 命令获取亮度，cwd="/" 对应 Node.js 中的 {cwd: "/"}
+        res = subprocess.run(
+            ['cat', '/lcd_brightness.conf'], 
+            capture_output=True, 
+            text=True, 
+            cwd="/"
+        )
+        content = res.stdout.strip()
+        _LOGGER.debug(content)
+        return int(content)
+    except Exception as e:
+        _LOGGER.error(f"获取亮度失败: {e}")
+        
+    return 100
+
 def set_brightness(value: int):
     try:
         # 执行 sudo 命令设置亮度，处理 value 为 0 或 None 的情况
@@ -51,3 +68,23 @@ def set_brightness(value: int):
         _LOGGER.error(f"设置亮度失败: {e}")
         
     return value
+
+
+def is_screen_on():
+    """判断屏幕是否打开"""
+    # gdbus call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.freedesktop.DBus.Properties.Get org.gnome.Mutter.DisplayConfig PowerSaveMode
+    try:
+        # 执行 sudo 命令获取亮度，cwd="/" 对应 Node.js 中的 {cwd: "/"}
+        res = subprocess.run(
+            ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Get', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode'], 
+            capture_output=True, 
+            text=True, 
+            cwd="/"
+        )
+        content = res.stdout.strip()
+        # (<0>,)
+        content = content.replace('(<', '').replace('>,)', '')
+        return int(content) == 0
+    except Exception as e:
+        _LOGGER.error(f"获取屏幕状态失败: {e}")
+    return True
