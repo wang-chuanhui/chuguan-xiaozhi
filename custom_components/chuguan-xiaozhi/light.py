@@ -2,7 +2,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.light import LightEntity, ColorMode, ATTR_BRIGHTNESS
-from .chuguan.screen import get_brightness, set_brightness, no_sudo_get_brightness, is_screen_on
+from .chuguan.screen import get_brightness, set_brightness, no_sudo_get_brightness, is_screen_on, set_screen_on
 import logging
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
@@ -63,7 +63,7 @@ class ScreenLight(LightEntity):
         return self._brightness / 100 * 255
     
     def turn_on(self, **kwargs):
-        self._is_on = True
+        set_screen_on(True)
         if ATTR_BRIGHTNESS in kwargs:
             brightness = kwargs[ATTR_BRIGHTNESS]
             value = brightness / 255 * 100
@@ -71,7 +71,7 @@ class ScreenLight(LightEntity):
             self._brightness = round(value)
 
     def turn_off(self, **kwargs):
-        self._is_on = False
+        set_screen_on(False)
 
     async def async_added_to_hass(self) -> None:
         """Entity added to hass."""

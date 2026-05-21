@@ -2,6 +2,8 @@ import os
 import subprocess
 import logging
 
+from homeassistant.core import ConfigSource
+
 _LOGGER = logging.getLogger(__name__)
 
 # 使用 os.path.join 拼接路径，与 Node.js 的 path.join 对应
@@ -88,3 +90,21 @@ def is_screen_on():
     except Exception as e:
         _LOGGER.error(f"获取屏幕状态失败: {e}")
     return True
+
+def set_screen_on(on: bool):
+    try:
+        value = 0 if on else 3
+        command = ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Set', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode', f'<int32 {value}>']
+        _LOGGER.info(' '.join(command))
+        res = subprocess.run(
+            command, 
+            capture_output=True, 
+            text=True, 
+            cwd="/"
+        )
+        _LOGGER.info(res.stdout.strip())
+        _LOGGER.info(res.stderr.strip())
+        content = res.stdout.strip()
+        _LOGGER.info(content)
+    except Exception as e:
+        _LOGGER.error(f"设置屏幕状态失败: {e}")
