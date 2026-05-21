@@ -14,12 +14,13 @@ _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.LIGHT, Platform.COVER, Platform.BUTTON, Platform.CLIMATE, Platform.VALVE]
-PLATFORMS = []
+PLATFORMS = [Platform.LIGHT, Platform.NUMBER, Platform.BINARY_SENSOR]
 
 type HubConfigEntry = ConfigEntry[Hub]
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up chuguan_home from a config entry."""
+    _LOGGER.info("async_setup with config %s", config)
     hub = Hub(hass, None)
     try:
         await hub.setup()

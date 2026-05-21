@@ -36,6 +36,11 @@ class Hub:
         self.entry = entry
         self.later_update_cancel = None
         self.interval_update_cancel = None
+        self.cancel1 = None
+        self.cancel2 = None
+        self.cancel3 = None
+        self.cancel4 = None
+        self.cancel5 = None
         self.store = MyStore(hass)
         self.isSendNotification = False
         self.host = ""
@@ -58,19 +63,27 @@ class Hub:
     def stop(self):
         """Stop the hub"""
         _LOGGER.info("Stop the hub")
-        self.hass.bus._async_remove_listener(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
-        self.hass.bus._async_remove_listener(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
-        self.hass.bus._async_remove_listener(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
-        self.hass.bus._async_remove_listener(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
-        self.hass.bus._async_remove_listener(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
+        if self.cancel1 is not None:
+            self.cancel1()
+            self.cancel2()
+            self.cancel2 = None
+        if self.cancel3 is not None:
+            self.cancel3()
+            self.cancel3 = None
+        if self.cancel4 is not None:
+            self.cancel4()
+            self.cancel4 = None
+        if self.cancel5 is not None:
+            self.cancel5()
+            self.cancel5 = None
         self.remove_interval_update()
 
     async def setup(self):
-        self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
-        self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
-        self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
-        self.hass.bus.async_listen(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
-        self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
+        self.cancel1 = self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
+        self.cancel2 = self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
+        self.cancel3 = self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
+        self.cancel4 = self.hass.bus.async_listen(EVENT_AREA_REGISTRY_UPDATED, self._on_area_registry_updated)
+        self.cancel5 = self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
         self.setup_later_update()
 
     def setup_later_update(self):

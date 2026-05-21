@@ -1,0 +1,2 @@
+
+INTEGRATION_UNIQUE_ID = "chuguan_xiaozhi_integration_single_instance"

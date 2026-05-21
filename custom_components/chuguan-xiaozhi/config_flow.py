@@ -19,6 +19,8 @@ from .chuguan.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+from .const import INTEGRATION_UNIQUE_ID
+
 
 
 # TODO adjust the data schema to the data that you need
@@ -35,6 +37,8 @@ class ConfigFlow(ParentConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step."""
+        await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+        self._abort_if_unique_id_configured()
         errors: dict[str, str] = {}
         return self.async_create_entry(title="Chuguan Xiaozhi", data={})
         
