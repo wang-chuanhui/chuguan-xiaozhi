@@ -90,6 +90,9 @@ async def set_volume(value: int):
     except Exception as e:
         raise Exception(f"设置音量失败: {e}")
 
+async def get_mute():
+    result = await get_audio_status()
+    return result["muted"]
 
 async def set_mute(should_mute: bool):
     try:
@@ -151,7 +154,7 @@ async def watch_volume(callback):
                 if "Event 'change' on sink" in output:
                     # 触发变化时，重新获取当前音量状态并执行回调
                     try:
-                        info = await get_volume()
+                        info = await get_audio_status()
                         # 如果回调是普通函数，直接调用；如果是异步函数，用 await
                         if asyncio.iscoroutinefunction(callback):
                             await callback(info)

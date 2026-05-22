@@ -43,8 +43,13 @@ class VolumeNumber(NumberEntity):
         self.async_write_ha_state()
         @callback
         def handle_volume_change(info):
-            self._volume = info
+            mute = info["muted"]
+            if mute:
+                self._volume = 0
+            else:
+                self._volume = info["volume"]
             self.async_write_ha_state()
+            self.hass.bus.async_fire("volume_mute_changed", info)
 
         self._monitor_process = await watch_volume(handle_volume_change)
 
