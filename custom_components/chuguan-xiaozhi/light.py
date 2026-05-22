@@ -12,10 +12,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up the light platform."""
+    way1 = WayLight(1)
     way2 = WayLight(2)
     way3 = WayLight(3)
     screen = ScreenLight()
-    async_add_entities([way2, way3, screen])
+    async_add_entities([way1, way2, way3, screen])
 
 
 class WayLight(LightEntity):
