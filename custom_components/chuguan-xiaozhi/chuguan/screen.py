@@ -1,8 +1,7 @@
 import os
 import subprocess
 import logging
-
-from homeassistant.core import ConfigSource
+import platform
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -11,7 +10,8 @@ bin_path = os.path.join('/usr/local/bin', 'lcd_brightness')
 
 def get_brightness():
     try:
-        # 执行 sudo 命令获取亮度，cwd="/" 对应 Node.js 中的 {cwd: "/"}
+        if platform.system() != 'Linux':
+            return 100
         res = subprocess.run(
             ['sudo', bin_path, '-g'], 
             capture_output=True, 
@@ -33,7 +33,6 @@ def get_brightness():
 
 def no_sudo_get_brightness():
     try:
-        # 执行 sudo 命令获取亮度，cwd="/" 对应 Node.js 中的 {cwd: "/"}
         res = subprocess.run(
             ['cat', '/lcd_brightness.conf'], 
             capture_output=True, 
@@ -41,7 +40,8 @@ def no_sudo_get_brightness():
             cwd="/"
         )
         content = res.stdout.strip()
-        _LOGGER.debug(content)
+        if content == '':
+            return 100
         return int(content)
     except Exception as e:
         _LOGGER.error(f"获取亮度失败: {e}")
@@ -50,7 +50,8 @@ def no_sudo_get_brightness():
 
 def set_brightness(value: int):
     try:
-        # 执行 sudo 命令设置亮度，处理 value 为 0 或 None 的情况
+        if platform.system() != 'Linux':
+            return value
         res = subprocess.run(
             ['sudo', bin_path, str(value or 1)], 
             capture_output=True, 
@@ -76,7 +77,6 @@ def is_screen_on():
     """判断屏幕是否打开"""
     # gdbus call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.freedesktop.DBus.Properties.Get org.gnome.Mutter.DisplayConfig PowerSaveMode
     try:
-        # 执行 sudo 命令获取亮度，cwd="/" 对应 Node.js 中的 {cwd: "/"}
         res = subprocess.run(
             ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Get', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode'], 
             capture_output=True, 
@@ -86,6 +86,8 @@ def is_screen_on():
         content = res.stdout.strip()
         # (<0>,)
         content = content.replace('(<', '').replace('>,)', '')
+        if content == '':
+            return True
         return int(content) == 0
     except Exception as e:
         _LOGGER.error(f"获取屏幕状态失败: {e}")
