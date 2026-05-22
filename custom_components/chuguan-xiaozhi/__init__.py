@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.LIGHT, Platform.COVER, Platform.BUTTON, Platform.CLIMATE, Platform.VALVE]
-PLATFORMS = [Platform.LIGHT, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.MEDIA_PLAYER, Platform.COVER]
+PLATFORMS = [Platform.LIGHT, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH]
 
 type HubConfigEntry = ConfigEntry[Hub]
 
