@@ -9,7 +9,7 @@
   "documentation": "https://github.com/wang-chuanhui/chuguan_xiaozhi",
   "issue_tracker": "https://github.com/wang-chuanhui/chuguan_xiaozhi/issues",
   "homekit": {},
-  "integration_type": "hub",
+  "integration_type": "system",
   "iot_class": "cloud_push",
   "requirements": ["PyQRCode==1.2.1", "pydantic>=2.10.4"],
   "ssdp": [],
