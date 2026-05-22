@@ -102,9 +102,7 @@ def set_screen_on(on: bool):
             text=True, 
             cwd="/"
         )
-        _LOGGER.info(res.stdout.strip())
-        _LOGGER.info(res.stderr.strip())
         content = res.stdout.strip()
-        _LOGGER.info(content)
+        _LOGGER.debug(content)
     except Exception as e:
         _LOGGER.error(f"设置屏幕状态失败: {e}")
