@@ -16,7 +16,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Demo config entry."""
-    device = DevicePlayer("Device")
+    device = DevicePlayer()
     async_add_entities(
         [
             device,
@@ -35,17 +35,15 @@ class DevicePlayer(MediaPlayerEntity):
 
     # We only implement the methods that we support
 
-    def __init__(
-        self, name: str
-    ) -> None:
+    def __init__(self) -> None:
         """Initialize the demo device."""
         self._attr_supported_features = PLAYER_SUPPORT
-        self._attr_name = name
+        self._attr_name = "音量"
         self._attr_state = MediaPlayerState.IDLE
         self._attr_volume_level = 1.0
         self._attr_is_volume_muted = False
         self._attr_shuffle = False
-        self._attr_unique_id = name
+        self._attr_unique_id = "volume_mute_control"
 
     def mute_volume(self, mute: bool) -> None:
         """Mute the volume."""
