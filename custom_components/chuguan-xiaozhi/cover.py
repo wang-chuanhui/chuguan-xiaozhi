@@ -68,7 +68,7 @@ class DemoCover(CoverEntity):
         """Return if the cover is closed."""
         return self._closed
 
-    def close_cover(self, **kwargs: Any) -> None:
+    async def async_close_cover(self, **kwargs: Any) -> None:
         """Close the cover."""
         if self._position == 0:
             return
@@ -76,7 +76,7 @@ class DemoCover(CoverEntity):
         self._closed = True
         self.async_write_ha_state()
 
-    def open_cover(self, **kwargs: Any) -> None:
+    async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
         if self._position == 100:
             return
@@ -84,7 +84,7 @@ class DemoCover(CoverEntity):
         self._closed = False
         self.async_write_ha_state()
 
-    def set_cover_position(self, **kwargs: Any) -> None:
+    async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Move the cover to a specific position."""
         position: int = kwargs[ATTR_POSITION]
         if self._position == position:
