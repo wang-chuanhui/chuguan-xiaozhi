@@ -34,9 +34,9 @@ class VolumeNumber(NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
+        await set_volume(int(value))
         if self._muted:
             await set_mute(False)
-        await set_volume(int(value))
         self._volume = int(value)
 
     async def async_added_to_hass(self) -> None:
