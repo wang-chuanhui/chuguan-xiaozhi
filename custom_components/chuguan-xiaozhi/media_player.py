@@ -3,8 +3,13 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .VlcDevice import VlcDevice
-from .demo import DemoYoutubePlayer
+
+
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -12,9 +17,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Demo config entry."""
-    device = VlcDevice("播放器", "")
-    async_add_entities(
-        [
-            device
-        ]
-    )
+    try:
+        from .VlcDevice import VlcDevice
+
+        device = VlcDevice("播放器", "")
+        async_add_entities(
+            [
+                device
+            ]
+        )
+    except Exception as err:
+        _LOGGER.error(f"Error setting up VlcDevice: {err}")
