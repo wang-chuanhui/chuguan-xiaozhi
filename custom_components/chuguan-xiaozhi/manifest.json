@@ -11,7 +11,7 @@
   "homekit": {},
   "integration_type": "system",
   "iot_class": "cloud_push",
-  "requirements": ["PyQRCode==1.2.1", "pydantic>=2.10.4"],
+  "requirements": ["PyQRCode==1.2.1", "pydantic>=2.10.4", "python-vlc==3.0.18122"],
   "ssdp": [],
   "zeroconf": [],
   "version": "1.0.0"
