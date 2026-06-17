@@ -7,6 +7,7 @@ import logging
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 
+from homeassistant.helpers.event import async_call_later
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,7 +73,13 @@ class ScreenLight(LightEntity):
             self._brightness = round(value)
 
     def turn_off(self, **kwargs):
-        set_screen_on(False)
+        # set_screen_on(False)
+        if self._is_on == False:
+            return
+        self._is_on = False
+        self.schedule_update_ha_state()
+        async_call_later(self.hass, 1, self._reset_is_on)
+        raise NotImplementedError("请使用按键关闭屏幕")
 
     async def async_added_to_hass(self) -> None:
         """Entity added to hass."""
@@ -104,3 +111,7 @@ class ScreenLight(LightEntity):
 
     def _update_brightness(self):
         self.async_write_ha_state()
+
+    def _reset_is_on(self, now):
+        self._is_on = is_screen_on()
+        self.schedule_update_ha_state()
