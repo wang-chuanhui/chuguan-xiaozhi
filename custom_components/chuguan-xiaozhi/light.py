@@ -78,6 +78,7 @@ class ScreenLight(LightEntity):
             return
         self._is_on = False
         self.schedule_update_ha_state()
+        self._reset_is_on(None)
         async_call_later(self.hass, 1, self._reset_is_on)
         raise NotImplementedError("请使用按键关闭屏幕")
 
