@@ -51,10 +51,11 @@ class ScreenLight(LightEntity):
         super().__init__()
         self._attr_unique_id = f"screen"
         self._attr_name = f"屏幕"
-        self._attr_supported_color_modes = {ColorMode.ONOFF, ColorMode.BRIGHTNESS}
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         self._attr_color_mode = ColorMode.BRIGHTNESS
         self._is_on = False
         self._brightness = 100
+        self.extra_state_attributes = {"cannot_turn_off": True, "cannot_turn_off_reason": "请使用按键关闭屏幕"}
 
     @property
     def is_on(self) -> bool:
@@ -73,13 +74,7 @@ class ScreenLight(LightEntity):
             self._brightness = round(value)
 
     def turn_off(self, **kwargs):
-        # set_screen_on(False)
-        if self._is_on == False:
-            return
-        self._is_on = False
-        self.schedule_update_ha_state()
-        self._reset_is_on(None)
-        raise NotImplementedError("请使用按键关闭屏幕")
+        set_screen_on(False)
 
     async def async_added_to_hass(self) -> None:
         """Entity added to hass."""
