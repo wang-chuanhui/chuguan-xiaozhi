@@ -1,3 +1,4 @@
+import math
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -8,7 +9,8 @@ from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 
 from homeassistant.helpers.event import async_call_later
-
+from homeassistant.util.color import value_to_brightness, brightness_to_value
+BRIGHTNESS_SCALE = (1, 100)
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
@@ -63,15 +65,14 @@ class ScreenLight(LightEntity):
 
     @property
     def brightness(self) -> int:
-        return self._brightness / 100 * 255
+        return value_to_brightness(BRIGHTNESS_SCALE, self._brightness)
     
     def turn_on(self, **kwargs):
         set_screen_on(True)
         if ATTR_BRIGHTNESS in kwargs:
-            brightness = kwargs[ATTR_BRIGHTNESS]
-            value = brightness / 255 * 100
-            set_brightness(value)
-            self._brightness = round(value)
+            value_in_range = math.ceil(brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS]))
+            set_brightness(value_in_range)
+            self._brightness = value_in_range
 
     def turn_off(self, **kwargs):
         set_screen_on(False)
