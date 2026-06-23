@@ -18,11 +18,16 @@ PLATFORMS = [Platform.LIGHT, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.S
 
 type HubConfigEntry = ConfigEntry[Hub]
 
+instance: Hub | None = None
+
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up chuguan_home from a config entry."""
     _LOGGER.info("async_setup with config %s", config)
-    hub = Hub(hass, None)
+    global instance
+    hub = instance or Hub(hass, None)
+    instance = hub
     try:
+        _LOGGER.error("async_setup with config %s", config)
         await hub.setup()
         hass.data[DOMAIN] = {
             "hub": hub,
@@ -46,8 +51,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
     # TODO 5. Add the instance to hass.data
     _LOGGER.info("async_setup_entry with entry %s %s", entry, entry.data)
 
-    hub = Hub(hass, entry)
+    global instance
+    hub = instance or Hub(hass, entry)
+    instance = hub
+    hub.entry = entry
     try:
+        _LOGGER.error("async_setup_entry with entry %s %s", entry, entry.data)
         entry.runtime_data = hub
         await hub.setup()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
