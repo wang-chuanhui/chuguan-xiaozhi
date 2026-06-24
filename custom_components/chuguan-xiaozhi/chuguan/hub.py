@@ -1,14 +1,12 @@
 from urllib.parse import urlencode
 from homeassistant.core import HomeAssistant, callback, Event, EventStateChangedData
 from homeassistant.config_entries import ConfigEntries
-from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import NoEventData, ConfigType
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_STATE_CHANGED
 from homeassistant.helpers.device_registry import EventDeviceRegistryUpdatedData, async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, EVENT_ENTITY_REGISTRY_UPDATED, EventEntityRegistryUpdatedData
 from homeassistant.helpers.area_registry import async_get as async_get_area_registry, EVENT_AREA_REGISTRY_UPDATED, EventAreaRegistryUpdatedData
-from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_call_later
 from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
 import logging
@@ -25,7 +23,7 @@ import base64
 import io
 from homeassistant.components import persistent_notification
 from PIL import Image, ImageOps
-from homeassistant.helpers.entity_component import EntityComponent
+from .weather import met_weather_state_changed, check_all_met_weather
 
 PLATFORMS = [Platform.ALARM_CONTROL_PANEL, Platform.BUTTON, Platform.CLIMATE, Platform.COVER, Platform.FAN, Platform.HUMIDIFIER, Platform.LAWN_MOWER, Platform.LIGHT, Platform.LOCK, Platform.MEDIA_PLAYER, Platform.SCENE, Platform.SIREN, Platform.SWITCH, Platform.VACUUM, Platform.VALVE, Platform.WATER_HEATER]
 _LOGGER = logging.getLogger(__name__)
@@ -43,6 +41,7 @@ class Hub:
         self.cancel3 = None
         self.cancel4 = None
         self.cancel5 = None
+        self.cancel6 = None
         self.is_setup = False
         self.store = MyStore(hass)
         self.isSendNotification = False
@@ -79,7 +78,13 @@ class Hub:
         if self.cancel5 is not None:
             self.cancel5()
             self.cancel5 = None
+        if self.cancel6 is not None:
+            self.cancel6()
+            self.cancel6 = None
         self.remove_interval_update()
+        if self.check_weather_interval is not None:
+            self.check_weather_interval()
+            self.check_weather_interval = None
 
     async def setup(self):
         """Setup the Chuguan Xiaozhi hub"""
@@ -94,6 +99,7 @@ class Hub:
         self.cancel5 = self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._on_core_config_updated)
         self.cancel6 = self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._on_state_changed)
         self.setup_later_update()
+        self.check_weather_interval = async_track_time_interval(self.hass, self.interval_check_weather, timedelta(minutes=1))
 
     def setup_later_update(self):
         _LOGGER.info("Setup later update")
@@ -126,26 +132,7 @@ class Hub:
         data = ev.data
         entity_id = data.get('entity_id')
         new_state = data.get('new_state')
-        if new_state is None:
-            return
-        if entity_id.startswith('weather.') == False:
-            return
-        _LOGGER.error(f"{entity_id} State changed: {new_state.domain} {new_state.state}")
-        if new_state.state != 'unavailable':
-            return
-        registry = er.async_get(self.hass)
-        entity = registry.async_get(entity_id)
-        if entity is None:
-            return
-        if entity.platform != 'met':
-            return
-        config_entry = self.hass.config_entries.async_get_entry(entity.config_entry_id)
-        if config_entry is None:
-            return
-        coordinator: DataUpdateCoordinator = config_entry.runtime_data
-        if coordinator is None:
-            return
-        _LOGGER.error(f"config_entry: {config_entry} {coordinator} {coordinator.async_refresh} {entity}")
+        await met_weather_state_changed(self.hass, entity_id, new_state)
 
     @callback
     def _on_device_registry_updated(self, ev: Event[EventDeviceRegistryUpdatedData]):
@@ -168,6 +155,10 @@ class Hub:
     def interval_update_entities(self, now: datetime):
         """定时更新实体"""
         self.hass.create_task(self.do_update_entities())
+
+    def interval_check_weather(self, now: datetime):
+        """定时检查天气状态"""
+        self.hass.create_task(check_all_met_weather(self.hass))
 
     def update_entities(self):
         """Update entities"""
