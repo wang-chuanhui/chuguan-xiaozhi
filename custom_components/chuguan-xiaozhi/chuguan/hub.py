@@ -211,6 +211,9 @@ class Hub:
                 continue
             if entity.entity_category is not None and entity.entity_category == 'diagnostic':
                 continue
+            conversation = entity.options.get('conversation', {})
+            if conversation.get('should_expose', True) is False:
+                continue
             if entity.domain in PLATFORMS:
                 name = entity.name if entity.name is not None else entity.original_name
                 if name is None:

@@ -66,5 +66,5 @@ class MuteSwitch(SwitchEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
-        super().async_will_remove_from_hass()
+        await super().async_will_remove_from_hass()
         self.cancel()

@@ -2,6 +2,7 @@ import asyncio
 import psutil
 import logging
 from .model import SockResponse
+import subprocess
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,3 +48,18 @@ async def send_messages(message: str):
         if writer is not None:
             writer.close()
             await writer.wait_closed()
+
+
+def execute_shell(args: list[str]):
+    try:
+        res = subprocess.run(
+            args, 
+            capture_output=True, 
+            text=True, 
+            cwd="/"
+        )
+        content = res.stdout.strip()
+        return content
+    except Exception as e:
+        _LOGGER.error(f"execute shell error: {e}")
+        return None
