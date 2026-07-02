@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .chuguan.volume import get_mute, set_mute
+from .chuguan.RealDevice import realDevice
 
 
 async def async_setup_entry(
@@ -37,6 +38,7 @@ class MuteSwitch(SwitchEntity):
         self._attr_device_class = SwitchDeviceClass.SWITCH
         self._is_on = False
         self.cancel = None
+        self._attr_device_info = realDevice.device
 
     @property
     def is_on(self) -> bool:

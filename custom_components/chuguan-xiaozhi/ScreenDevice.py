@@ -4,6 +4,7 @@ from .chuguan.screen import get_brightness, set_brightness, no_sudo_get_brightne
 import logging
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
+from .chuguan.RealDevice import realDevice
 
 from homeassistant.util.color import value_to_brightness, brightness_to_value
 
@@ -23,6 +24,8 @@ class ScreenLight(LightEntity):
         self._is_on = False
         self._brightness = 100
         self.extra_state_attributes = {"cannot_turn_off": True, "cannot_turn_off_reason": "请使用按键关闭屏幕"}
+        self._attr_device_info = realDevice.device
+        self.entity_registry_visible_default = False
 
     @property
     def is_on(self) -> bool:

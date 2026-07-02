@@ -4,6 +4,8 @@ import logging
 from .model import SockResponse
 import subprocess
 
+from typing import List, Optional
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -62,4 +64,35 @@ def execute_shell(args: list[str]):
         return content
     except Exception as e:
         _LOGGER.error(f"execute shell error: {e}")
+        return None
+
+
+async def async_execute_shell(args: List[str]) -> Optional[str]:
+    """
+    异步执行 shell 命令
+    """
+    try:
+        # 1. 创建子进程
+        # 注意：这里使用传入的 args 列表，不需要 shell=True
+        proc = await asyncio.create_subprocess_exec(
+            *args,  # 解包参数列表
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd="/"  # 设置工作目录
+        )
+
+        # 2. 等待命令执行完成，并获取输出
+        # communicate() 会自动处理死锁问题，并返回 (stdout, stderr)
+        stdout, stderr = await proc.communicate()
+
+        # 3. 解码并返回结果
+        # 如果命令执行失败（返回非0），可以根据需要记录日志，但不要抛出异常中断逻辑
+        if proc.returncode != 0:
+            _LOGGER.warning(f"Shell command exited with code {proc.returncode}: {stderr.decode().strip()}")
+
+        content = stdout.decode().strip()
+        return content
+
+    except Exception as e:
+        _LOGGER.error(f"Execute shell error: {e}")
         return None

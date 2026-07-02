@@ -4,11 +4,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.number import NumberEntity, NumberDeviceClass
 from .chuguan.volume import watch_volume, get_volume, set_volume, set_mute, get_audio_status
 import asyncio
+from .SensorDevice import getAllNumber
+from .chuguan.RealDevice import realDevice
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up the number platform."""
     volume = VolumeNumber()
-    async_add_entities([volume])
+    numbers = getAllNumber()
+    async_add_entities([volume, *numbers])
 
 
 
@@ -27,6 +31,7 @@ class VolumeNumber(NumberEntity):
         self._volume = 100
         self._muted = False
         self._monitor_process = None
+        self._attr_device_info = realDevice.device
 
     @property
     def native_value(self):
