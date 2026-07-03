@@ -83,3 +83,20 @@ class MyStore:
             stored_data = {}
         stored_data["host"] = host
         await self.store.async_save(stored_data)
+
+    async def async_set_key_value(self, key: str, value: any):
+        """Set key value to store"""
+        stored_data = await self.store.async_load()
+        if isinstance(stored_data, dict) == False:
+            stored_data = {}
+        stored_data[key] = value
+        await self.store.async_save(stored_data)
+
+    async def async_get_key_value(self, key: str):
+        """Get key value from store"""
+        stored_data = await self.store.async_load()
+        if isinstance(stored_data, dict) == False:
+            stored_data = {}
+        if stored_data:
+            return stored_data.get(key, None)
+        return None

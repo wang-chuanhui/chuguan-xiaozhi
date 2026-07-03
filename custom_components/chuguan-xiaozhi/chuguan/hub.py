@@ -207,7 +207,7 @@ class Hub:
         entities.sort(key=lambda x: (x.entity_id))
         update_entities: list[str] = []
         for entity in entities:
-            if entity.disabled or entity.hidden:
+            if entity.disabled:
                 continue
             if entity.entity_category is not None and entity.entity_category == 'diagnostic':
                 continue
@@ -357,3 +357,15 @@ class Hub:
             notification_id="home_assistant_host_notification"
         )
         # self.isSendNotification = True
+
+instance: Hub | None = None
+
+
+def getHub(hass: HomeAssistant):
+    global instance
+    if instance is None:
+        instance = Hub(hass, None)
+    return instance
+
+def getAlreadyExistHub():
+    return instance

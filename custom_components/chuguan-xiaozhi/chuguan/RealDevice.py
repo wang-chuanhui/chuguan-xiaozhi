@@ -1,6 +1,7 @@
 from .utils import async_execute_shell
 from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
+from .hub import getAlreadyExistHub
 
 via_device=(DOMAIN, "ha_screen_device")
 
@@ -18,13 +19,23 @@ class RealDevice:
         """"""
 
     async def getWayOn(self, way: int) -> bool:
+        hub = getAlreadyExistHub()
+        if hub:
+            return await hub.store.async_get_key_value(f'way_{way}_on') == '1'
         return await async_execute_shell(['test_way.sh', '-g', str(way), 'on']) == '1'
     
     async def setWayOn(self, way: int, value: bool):
+        hub = getAlreadyExistHub()
+        if hub:
+            await hub.store.async_set_key_value(f'way_{way}_on', '1' if value else '0')
+            return
         await async_execute_shell(['test_way.sh', '-s', str(way), 'on', '1' if value else '0'])
 
     async def getAllBrightness(self, on: bool) -> int:
         status = 'on' if on else 'off'
+        hub = getAlreadyExistHub()
+        if hub:
+            return await hub.store.async_get_key_value(f'way_{status}_brightness') or 100
         value = await async_execute_shell(['test_way.sh', '-g', 'all', f'{status}_brightness'])
         if value:
             return int(value)
@@ -32,10 +43,17 @@ class RealDevice:
     
     async def setAllBrightness(self, on: bool, value: int):
         status = 'on' if on else 'off'
+        hub = getAlreadyExistHub()
+        if hub:
+            await hub.store.async_set_key_value(f'way_{status}_brightness', value)
+            return
         await async_execute_shell(['test_way.sh', '-s', 'all', f'{status}_brightness', str(value)])
 
     async def getWayColor(self, way: int, on: bool) -> tuple[int, int, int]:
         status = 'on' if on else 'off'
+        hub = getAlreadyExistHub()
+        if hub:
+            return await hub.store.async_get_key_value(f'way_{way}_{status}_color') or [255,215,0]
         value = await async_execute_shell(['test_way.sh', '-g', str(way), f'{status}_color'])
         if value:
             items = value.split(',')
@@ -43,15 +61,26 @@ class RealDevice:
             return items
         return (255, 215, 0)
     
-    async def setWayColor(slef, way: int, on: bool, value: tuple[int, int, int]):
+    async def setWayColor(self, way: int, on: bool, value: tuple[int, int, int]):
         status = 'on' if on else 'off'
+        hub = getAlreadyExistHub()
+        if hub:
+            await hub.store.async_set_key_value(f'way_{way}_{status}_color', value)
+            return
         value = ','.join(map(str, value))
         await async_execute_shell(['test_way.sh', '-s', str(way), f'{status}_color', value])
 
     async def getKV(self, key: str) -> str:
+        hub = getAlreadyExistHub()
+        if hub:
+            return await hub.store.async_get_key_value(f'kv_{key}') or ''
         return await async_execute_shell(['test_way.sh', '-g', 'kv', key])
     
     async def setKV(self, key: str, value: str):
+        hub = getAlreadyExistHub()
+        if hub:
+            await hub.store.async_set_key_value(f'kv_{key}', value)
+            return
         await async_execute_shell(['test_way.sh', '-s', 'kv', key, value])
 
 realDevice = RealDevice()
