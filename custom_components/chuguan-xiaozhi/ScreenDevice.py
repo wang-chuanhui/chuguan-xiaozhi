@@ -5,6 +5,7 @@ import logging
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from .chuguan.RealDevice import realDevice
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, RegistryEntryHider
 
 from homeassistant.util.color import value_to_brightness, brightness_to_value
 
@@ -52,6 +53,12 @@ class ScreenLight(LightEntity):
         self._is_on = is_screen_on()
         self.async_write_ha_state()
         self._cancelable = async_track_time_interval(self.hass, self.update_brightness, timedelta(seconds=1))
+        if self.registry_entry and self.entity_id:
+            entity_registry = async_get_entity_registry(self.hass)
+            entity_registry.async_update_entity(
+                self.entity_id,
+                hidden_by=RegistryEntryHider.INTEGRATION
+            )
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity will be removed from hass."""
