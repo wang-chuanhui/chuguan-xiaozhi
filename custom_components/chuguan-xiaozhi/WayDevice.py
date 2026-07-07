@@ -9,6 +9,8 @@ from homeassistant.core import callback
 from .chuguan.RealDevice import realDevice
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
+from homeassistant.const import EntityCategory
+
 
 _LOGGER = logging.getLogger(__name__)
 BRIGHTNESS_SCALE = (1, 100)
@@ -51,7 +53,10 @@ class WayLight(LightEntity):
         await super().async_added_to_hass()
         self._is_on = await realDevice.getWayOn(self._way)
         self.async_write_ha_state()
-        self._cancelable = async_track_time_interval(self.hass, self.update_way, timedelta(seconds=1))
+        # self._cancelable = async_track_time_interval(self.hass, self.update_way, timedelta(seconds=1))
+        self.async_on_remove(
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_way)
+        )
 
     async def async_will_remove_from_hass(self):
         await super().async_will_remove_from_hass()
@@ -72,6 +77,7 @@ class BacklightBrightness(LightEntity):
         self._attr_supported_color_modes = [ColorMode.BRIGHTNESS]
         self._attr_color_mode = ColorMode.BRIGHTNESS
         self._brightness = 100
+        self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def is_on(slef):
@@ -121,6 +127,7 @@ class WayBacklight(LightEntity):
         self._brightness = brightness
         self._listen_event = None
         self._rgb_color = (255, 215, 0)
+        self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def is_on(self) -> bool:

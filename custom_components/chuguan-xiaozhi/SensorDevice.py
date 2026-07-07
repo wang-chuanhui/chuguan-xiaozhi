@@ -1,11 +1,17 @@
 from enum import StrEnum
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
-from homeassistant.components.number import NumberEntity, NumberDeviceClass
+from homeassistant.components.number import NumberEntity, NumberDeviceClass, NumberMode
 from .chuguan.RealDevice import realDevice
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from homeassistant.components.button import ButtonEntity
+from homeassistant.const import EntityCategory
+import logging
+import datetime
+
+_LOGGER = logging.getLogger(__name__)
+
 
 class KeyType(StrEnum):
     MOTION = 'motion'
@@ -40,11 +46,15 @@ class MotionBinarySensor(BinarySensorEntity):
         await super().async_added_to_hass()
         self._is_on = await realDevice.getKV("motion_on")
         self.schedule_update_ha_state()
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_is_on, timedelta(seconds=1))
+        # )
         self.async_on_remove(
-            async_track_time_interval(self.hass, self.update_is_on, timedelta(seconds=1))
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_is_on)
         )
     
     async def update_is_on(self, now):
+        """Update the binary sensor state."""
         oldValue = self._is_on
         self._is_on = await realDevice.getKV('motion_on') == '1'
         if oldValue == self._is_on:
@@ -70,8 +80,11 @@ class PresenceBinarySensor(BinarySensorEntity):
         await super().async_added_to_hass()
         self._is_on = await realDevice.getKV("presence_on")
         self.schedule_update_ha_state()
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_is_on, timedelta(seconds=1))
+        # )
         self.async_on_remove(
-            async_track_time_interval(self.hass, self.update_is_on, timedelta(seconds=1))
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_is_on)
         )
     
     async def update_is_on(self, now):
@@ -84,7 +97,7 @@ class PresenceBinarySensor(BinarySensorEntity):
 class DistanceSensor(SensorEntity):
     """距离传感器（支持运动和存在距离）"""
     _attr_device_class = SensorDeviceClass.DISTANCE
-    _attr_native_unit_of_measurement = "m"
+    _attr_native_unit_of_measurement = "cm"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, name: str, distance_type: KeyType):
@@ -104,8 +117,11 @@ class DistanceSensor(SensorEntity):
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
         await self.update_Distance(None)
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_Distance, timedelta(seconds=1))
+        # )
         self.async_on_remove(
-            async_track_time_interval(self.hass, self.update_Distance, timedelta(seconds=1))
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_Distance)
         )
     
     async def update_Distance(self, now):
@@ -114,7 +130,7 @@ class DistanceSensor(SensorEntity):
             newValue = await realDevice.getKV('motion_distance')
         elif self._distance_type == KeyType.PRESENCE:
             newValue = await realDevice.getKV('presence_distance')
-        if newValue == '' or newValue == None:
+        if newValue == '':
             return
         if newValue == self._distance:
             return
@@ -128,6 +144,7 @@ class SettingNumber(NumberEntity):
         self._key = key
         self._attr_name = name
         self._attr_unique_id = f"{key}_setting"
+        self._attr_entity_category = EntityCategory.CONFIG
 
         if "motion" in key:
             self._attr_device_info = realDevice.motionDevice
@@ -136,27 +153,30 @@ class SettingNumber(NumberEntity):
 
         # 根据类型设置不同的范围和步进
         if "cycle" in key:  # 存在判断周期
-            self._attr_native_min_value = 2
-            self._attr_native_max_value = 30
+            self._attr_native_min_value = 1
+            self._attr_native_max_value = 60
             self._attr_native_step = 1
             self._native_value = 2
             self._attr_native_unit_of_measurement = "min"
             self._attr_device_class = NumberDeviceClass.DURATION
+            self._attr_mode = NumberMode.SLIDER
         elif "sensitivity" in key:  # 灵敏度
             self._attr_native_min_value = 0
-            self._attr_native_max_value = 100
+            self._attr_native_max_value = 49
             self._attr_native_step = 1
-            self._native_value = 50
+            self._native_value = 8
+            self._attr_mode = NumberMode.SLIDER
         elif "distance" in key:  # 距离阈值 (最小/最大值)
-            self._attr_native_min_value = 0
-            self._attr_native_max_value = 10
-            self._attr_native_step = 0.1
+            self._attr_native_min_value = 100
+            self._attr_native_max_value = 500
+            self._attr_native_step = 1
             if 'min' in key:
-                self._native_value = 0
+                self._native_value = 100
             elif 'max' in key:
-                self._native_value = 10
-            self._attr_native_unit_of_measurement = "m"
+                self._native_value = 300
+            self._attr_native_unit_of_measurement = "cm"
             self._attr_device_class = NumberDeviceClass.DISTANCE
+            self._attr_mode = NumberMode.SLIDER
         self._native_value = 0
 
 
@@ -174,7 +194,7 @@ class SettingNumber(NumberEntity):
                 if value > float(maxValue):
                     value = float(maxValue)
                     if value == self._native_value:
-                        value = value - 0.1
+                        value = value - 1
         elif "max" in self._key:
             minKey = self._key.replace('max', 'min')
             minValue = await realDevice.getKV(minKey)
@@ -182,8 +202,8 @@ class SettingNumber(NumberEntity):
                 if value < float(minValue):
                     value = float(minValue)
                     if value == self._native_value:
-                        value = value + 0.1
-        await realDevice.setKV(self._key, str(value))
+                        value = value + 1
+        await realDevice.setKV(self._key, str(int(value)))
         await self.update_value()
 
     async def update_value(self, now=None):
@@ -199,9 +219,9 @@ class SettingNumber(NumberEntity):
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
         await self.update_value(None)
-        self.async_on_remove(
-            async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
-        )
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
+        # )
 
 class EnvironmentStudyButton(ButtonEntity):
     """环境学习按钮"""
@@ -209,21 +229,24 @@ class EnvironmentStudyButton(ButtonEntity):
     def __init__(self, on: bool):
         self._on = on
         if on:
-            self._attr_name = "开启环境学习"
+            self._attr_name = "执行环境学习"
         else:
-            self._attr_name = "关闭环境学习"
+            self._attr_name = "停止环境学习"
         self._attr_unique_id = f"environment_study_button_{self._on}"
-        self._attr_device_info = realDevice.motionDevice
+        self._attr_device_info = realDevice.device
 
     async def async_press(self):
-        await realDevice.setKV('environment_study', '1' if self._on else '0')
+        if self._on:
+            await realDevice.begin_learn()
+        else:
+            await realDevice.end_learn()
 
 class EnvironmentStudySensor(BinarySensorEntity):
     """环境学习传感器"""
     def __init__(self):
         self._attr_name = "环境学习"
         self._attr_unique_id = "environment_study_status"
-        self._attr_device_info = realDevice.motionDevice
+        self._attr_device_info = realDevice.device
         self._is_on = False
         self._attr_device_class = BinarySensorDeviceClass.RUNNING
 
@@ -235,8 +258,11 @@ class EnvironmentStudySensor(BinarySensorEntity):
         await super().async_added_to_hass()
         self._is_on = await realDevice.getKV('environment_study') == '1'
         self.schedule_update_ha_state()
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
+        # )
         self.async_on_remove(
-            async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_value)
         )
 
     async def update_value(self, now=None):
@@ -248,19 +274,18 @@ def getAllBinarySensor():
     return [MotionBinarySensor(), PresenceBinarySensor(), EnvironmentStudySensor()]
 
 def getAllSensor():
-    return [DistanceSensor("人体存在的距离", 'presence'), DistanceSensor("运动感应的距离", 'motion')]
+    return [DistanceSensor("人体存在目标距离", 'presence'), DistanceSensor("运动感应目标距离", 'motion')]
 
 def getAllNumber():
     return [
-        SettingNumber("运动判断周期", KeyType.MOTION_CYCLE),
         SettingNumber("存在判断周期", KeyType.PRESENCE_CYCLE),
         SettingNumber("运动灵敏度", KeyType.MOTION_SENSITIVITY),
         SettingNumber("存在灵敏度", KeyType.PRESENCE_SENSITIVITY),
-        SettingNumber("运动最小值", KeyType.MOTION_DISTANCE_MIN),
-        SettingNumber("存在最小值", KeyType.PRESENCE_DISTANCE_MIN),
-        SettingNumber("运动最大值", KeyType.MOTION_DISTANCE_MAX),
-        SettingNumber("存在最大值", KeyType.PRESENCE_DISTANCE_MAX),
+        SettingNumber("运动最小距离", KeyType.MOTION_DISTANCE_MIN),
+        SettingNumber("存在最小距离", KeyType.PRESENCE_DISTANCE_MIN),
+        SettingNumber("运动最大距离", KeyType.MOTION_DISTANCE_MAX),
+        SettingNumber("存在最大距离", KeyType.PRESENCE_DISTANCE_MAX),
     ]
 
 def getAllButton():
-    return [EnvironmentStudyButton(False), EnvironmentStudyButton(True)]
+    return [EnvironmentStudyButton(True)]

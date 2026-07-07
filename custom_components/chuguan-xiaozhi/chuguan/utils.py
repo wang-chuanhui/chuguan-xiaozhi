@@ -74,6 +74,7 @@ async def async_execute_shell(args: List[str]) -> Optional[str]:
     try:
         # 1. 创建子进程
         # 注意：这里使用传入的 args 列表，不需要 shell=True
+        _LOGGER.info(f"async_execute_shell with args {args}")
         proc = await asyncio.create_subprocess_exec(
             *args,  # 解包参数列表
             stdout=asyncio.subprocess.PIPE,

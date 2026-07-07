@@ -24,6 +24,7 @@ import io
 from homeassistant.components import persistent_notification
 from PIL import Image, ImageOps
 from .weather import met_weather_state_changed, check_all_met_weather
+from .RealDevice import realDevice
 
 PLATFORMS = [Platform.ALARM_CONTROL_PANEL, Platform.BUTTON, Platform.CLIMATE, Platform.COVER, Platform.FAN, Platform.HUMIDIFIER, Platform.LAWN_MOWER, Platform.LIGHT, Platform.LOCK, Platform.MEDIA_PLAYER, Platform.SCENE, Platform.SIREN, Platform.SWITCH, Platform.VACUUM, Platform.VALVE, Platform.WATER_HEATER]
 _LOGGER = logging.getLogger(__name__)
@@ -48,6 +49,8 @@ class Hub:
         self.host = ""
         if self.hass.state == "running":
             self.update_entities()
+        realDevice.hass = hass
+        realDevice.store = self.store
 
 
     def __del__(self):
@@ -62,7 +65,7 @@ class Hub:
             self.interval_update_cancel()
             self.interval_update_cancel = None
 
-    def stop(self):
+    async def stop(self):
         """Stop the hub"""
         _LOGGER.info("Stop the hub")
         if self.cancel1 is not None:
@@ -85,13 +88,14 @@ class Hub:
         if self.check_weather_interval is not None:
             self.check_weather_interval()
             self.check_weather_interval = None
+        await realDevice.stop()
 
     async def setup(self):
         """Setup the Chuguan Xiaozhi hub"""
         if self.is_setup:
             return
         self.is_setup = True
-        _LOGGER.error("Setup the Chuguan Xiaozhi hub")
+        _LOGGER.info("Setup the Chuguan Xiaozhi hub")
         self.cancel1 = self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, self._on_homeassistant_started)
         self.cancel2 = self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._on_device_registry_updated)
         self.cancel3 = self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, self._on_entity_registry_updated)
@@ -100,6 +104,7 @@ class Hub:
         self.cancel6 = self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._on_state_changed)
         self.setup_later_update()
         self.check_weather_interval = async_track_time_interval(self.hass, self.interval_check_weather, timedelta(minutes=1))
+        await realDevice.start(self.hass)
 
     def setup_later_update(self):
         _LOGGER.info("Setup later update")

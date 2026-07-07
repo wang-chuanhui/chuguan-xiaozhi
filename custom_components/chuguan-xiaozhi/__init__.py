@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.LIGHT, Platform.COVER, Platform.BUTTON, Platform.CLIMATE, Platform.VALVE]
-PLATFORMS = [Platform.LIGHT, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.MEDIA_PLAYER, Platform.SENSOR, Platform.BUTTON]
+PLATFORMS = [Platform.LIGHT, Platform.SWITCH, Platform.MEDIA_PLAYER, Platform.BINARY_SENSOR, Platform.SENSOR, Platform.BUTTON, Platform.NUMBER]
 
 type HubConfigEntry = ConfigEntry[Hub]
 
@@ -66,5 +66,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool
     """Unload a config entry."""
     hub = entry.runtime_data
     if hub is not None:
-        hub.stop()
+        await hub.stop()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

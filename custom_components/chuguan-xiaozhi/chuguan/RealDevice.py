@@ -1,7 +1,15 @@
 from .utils import async_execute_shell
 from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
-from .hub import getAlreadyExistHub
+import logging
+import asyncio
+from homeassistant.core import HomeAssistant
+from .store import MyStore
+import re
+import datetime
+
+
+_LOGGER = logging.getLogger(__name__)
 
 via_device=(DOMAIN, "ha_screen_device")
 
@@ -15,72 +23,317 @@ class RealDevice:
     presenceDevice = DeviceInfo(manufacturer="初冠", model="小智", name="人体存在", identifiers={(DOMAIN, "device_human_presence")}, model_id="cgxz", via_device=via_device)
     motionDevice = DeviceInfo(manufacturer="初冠", model="小智", name="运动感应", identifiers={(DOMAIN, "device_human_motion")}, model_id="cgxz", via_device=via_device)
 
+    motion_on = False
+    motion_distance: int | None = None
+    presence_on = False
+    presence_distance: int | None = None
+    way_1 = False
+    way_2 = False
+    way_3 = False
+
     def __init__(self):
         """"""
+        _LOGGER.info("RealDevice init")
+        self._process: asyncio.subprocess.Process | None = None
+        self._task: asyncio.Task | None = None
+        self._learn_process: asyncio.subprocess.Process | None = None
+        self._learn_task: asyncio.Task | None = None
+        self.hass: HomeAssistant | None = None
+        self.store: MyStore | None = None
+
+
+    async def start(self, hass: HomeAssistant):
+        """启动雷达监控子进程"""
+        try:
+            await self.resetKeySetting()
+            await self.setLed()
+            status = await async_execute_shell(["radar_key", "--status", "--query-relay"])
+            await self.parse_line(status)
+            self._process = await asyncio.create_subprocess_exec(
+                "radar_key", "--poll", "0",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            # 将读取任务作为后台任务运行
+            self.hass = hass
+            self._task = self.hass.async_create_background_task(self._read_loop(), "radar_key_monitor")
+            _LOGGER.info("Radar monitor started successfully.")
+        except FileNotFoundError:
+            _LOGGER.error("radar_key command not found. Please check installation.")
+        except Exception as e:
+            _LOGGER.error(f"Error starting radar monitor: {e}")
+
+    async def _read_loop(self):
+        """持续读取并解析雷达输出"""
+        assert self._process is not None and self._process.stdout is not None
+        
+        while not self._process.stdout.at_eof():
+            try:
+                raw_line = await self._process.stdout.readline()
+                if not raw_line:
+                    break
+                    
+                line = raw_line.decode('utf-8').strip()
+                await self.parse_line(line)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                _LOGGER.error(f"Error reading radar output: {e}")
+
+
+    async def parse_line(self, line: str):
+        """解析雷达输出行"""
+        if not line:
+            return
+        if "运动触发:" in line:
+            match = re.search(r'运动触发:\s*([是否])', line)
+            motion_on = False
+            if match:
+                motion_on = match.group(1).strip() == '是'
+            if motion_on != self.motion_on:
+                self.motion_on = motion_on
+                await self.update_value('motion_on', motion_on)
+        if "存在触发:" in line:
+            match = re.search(r'存在触发:\s*([是否])', line)
+            presence_on = False
+            if match:
+                presence_on = match.group(1).strip() == '是'
+            if presence_on != self.presence_on:
+                self.presence_on = presence_on
+                await self.update_value('presence_on', presence_on)
+        if "运动目标距离:" in line:
+            match = re.search(r'运动目标距离:\s*(\d+\s*cm|无)', line)
+            value = '无'
+            distance = None
+            if match:
+                value = match.group(1).strip()
+            if value == '无':
+                distance = None
+            else:
+                distance = int(value.replace('cm', ''))
+            if distance != self.motion_distance:
+                self.motion_distance = distance
+                await self.update_value('motion_distance', distance)
+        if "存在目标距离:" in line:
+            match = re.search(r'存在目标距离:\s*(\d+\s*cm|无)', line)
+            value = '无'
+            distance = None
+            if match:
+                value = match.group(1).strip()
+            if value == '无':
+                distance = None
+            else:
+                distance = int(value.replace('cm', ''))
+            if distance != self.presence_distance:
+                self.presence_distance = distance
+                await self.update_value('presence_distance', distance)
+        if "继电器" in line:
+            match = re.search(r'继电器\s*=\s*(.+)', line)
+            if match:
+                value = match.group(1).strip()
+                items = value.split(' ')
+                way_1 = items[0] == '1'
+                way_2 = items[1] == '1'
+                way_3 = items[2] == '1'
+                if way_1 != self.way_1:
+                    self.way_1 = way_1
+                    await self.update_value('way_1', way_1)
+                if way_2 != self.way_2:
+                    self.way_2 = way_2
+                    await self.update_value('way_2', way_2)
+                if way_3 != self.way_3:
+                    self.way_3 = way_3
+                    await self.update_value('way_3', way_3)
+
+    async def update_value(self, key: str, value: any):
+        """更新指定键的值"""
+        self.hass.bus.async_fire(f"chuguan_xiaozhi_real_device_update_value", {key: value})
+
+    async def stop(self):
+        """安全停止雷达监控"""
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        
+        if self._process:
+            try:
+                self._process.terminate()
+                await self._process.wait()
+            except ProcessLookupError:
+                pass
+        _LOGGER.info("Radar monitor stopped.")
 
     async def getWayOn(self, way: int) -> bool:
-        hub = getAlreadyExistHub()
-        if hub:
-            return await hub.store.async_get_key_value(f'way_{way}_on') == '1'
-        return await async_execute_shell(['test_way.sh', '-g', str(way), 'on']) == '1'
+        if way == 1:
+            return self.way_1
+        elif way == 2:
+            return self.way_2
+        elif way == 3:
+            return self.way_3
+        return False
     
     async def setWayOn(self, way: int, value: bool):
-        hub = getAlreadyExistHub()
-        if hub:
-            await hub.store.async_set_key_value(f'way_{way}_on', '1' if value else '0')
-            return
-        await async_execute_shell(['test_way.sh', '-s', str(way), 'on', '1' if value else '0'])
+        content = await async_execute_shell(['radar_key', '--relay', str(way - 1), '1' if value else '0'])
+        await self.parse_line(content)
 
     async def getAllBrightness(self, on: bool) -> int:
         status = 'on' if on else 'off'
-        hub = getAlreadyExistHub()
-        if hub:
-            return await hub.store.async_get_key_value(f'way_{status}_brightness') or 100
-        value = await async_execute_shell(['test_way.sh', '-g', 'all', f'{status}_brightness'])
-        if value:
-            return int(value)
-        return 100
+        if self.store:
+            return await self.store.async_get_key_value(f'way_{status}_brightness') or 50
+        return 50
     
+    async def setLed(self):
+        """设置LED状态, 2个亮度+3组RGB 长度20字节(关/开灯亮度0-100 + 3组灯开关灯色(先关灯色，后开灯色)"""
+        args = ['radar_key', '--led']
+        brightness_off = await self.getAllBrightness(False)
+        brightness_on = await self.getAllBrightness(True)
+        color_1_off = await self.getWayColor(1, False)
+        color_1_on = await self.getWayColor(1, True)
+        color_2_off = await self.getWayColor(2, False)
+        color_2_on = await self.getWayColor(2, True)
+        color_3_off = await self.getWayColor(3, False)
+        color_3_on = await self.getWayColor(3, True)
+        args.append(str(brightness_off))
+        args.append(str(brightness_on))
+        args.extend(map(str, color_1_off))
+        args.extend(map(str, color_1_on))
+        args.extend(map(str, color_2_off))  
+        args.extend(map(str, color_2_on))
+        args.extend(map(str, color_3_off))
+        args.extend(map(str, color_3_on))
+        await async_execute_shell(args)
+       
     async def setAllBrightness(self, on: bool, value: int):
         status = 'on' if on else 'off'
-        hub = getAlreadyExistHub()
-        if hub:
-            await hub.store.async_set_key_value(f'way_{status}_brightness', value)
-            return
-        await async_execute_shell(['test_way.sh', '-s', 'all', f'{status}_brightness', str(value)])
+        if self.store:
+            await self.store.async_set_key_value(f'way_{status}_brightness', value)
+        await self.setLed()
 
     async def getWayColor(self, way: int, on: bool) -> tuple[int, int, int]:
         status = 'on' if on else 'off'
-        hub = getAlreadyExistHub()
-        if hub:
-            return await hub.store.async_get_key_value(f'way_{way}_{status}_color') or [255,215,0]
-        value = await async_execute_shell(['test_way.sh', '-g', str(way), f'{status}_color'])
-        if value:
-            items = value.split(',')
-            items = list(map(int, items))
-            return items
-        return (255, 215, 0)
+        if self.store:
+            value = await self.store.async_get_key_value(f'way_{way}_{status}_color')
+            if value and isinstance(value, list) and len(value) == 3:
+                return value
+        if on:
+            return [255, 0, 0]
+        return [0, 0, 255]
     
     async def setWayColor(self, way: int, on: bool, value: tuple[int, int, int]):
         status = 'on' if on else 'off'
-        hub = getAlreadyExistHub()
-        if hub:
-            await hub.store.async_set_key_value(f'way_{way}_{status}_color', value)
-            return
-        value = ','.join(map(str, value))
-        await async_execute_shell(['test_way.sh', '-s', str(way), f'{status}_color', value])
-
+        if self.store:
+            await self.store.async_set_key_value(f'way_{way}_{status}_color', value)
+        await self.setLed()
+    
     async def getKV(self, key: str) -> str:
-        hub = getAlreadyExistHub()
-        if hub:
-            return await hub.store.async_get_key_value(f'kv_{key}') or ''
-        return await async_execute_shell(['test_way.sh', '-g', 'kv', key])
+        if key == 'motion_on':
+            return '1' if self.motion_on else '0'
+        if key == 'presence_on':
+            return '1' if self.presence_on else '0'
+        if key == 'motion_distance':
+            return self.motion_distance
+        elif key == 'presence_distance':
+            return self.presence_distance
+        if self.store:
+            return await self.store.async_get_key_value(f'kv_{key}') or ''
+        return ''
     
     async def setKV(self, key: str, value: str):
-        hub = getAlreadyExistHub()
-        if hub:
-            await hub.store.async_set_key_value(f'kv_{key}', value)
+        if self.store:
+            await self.store.async_set_key_value(f'kv_{key}', value)
+        radar_key = ''
+        input_value = float(value)
+        if key == 'motion_distance_min':
+            radar_key = '--move-min'
+        elif key == 'motion_distance_max':
+            radar_key = '--move-max'
+        elif key == 'motion_sensitivity':
+            radar_key = '--move-sens'
+        elif key == 'presence_distance_min':
+            radar_key = '--exist-min'
+        elif key == 'presence_distance_max':
+            radar_key = '--exist-max'
+        elif key == 'presence_sensitivity':
+            radar_key = '--exist-sens'
+        elif key == 'presence_cycle':
+            radar_key = '--period'
+            input_value = input_value * 60
+        if radar_key:
+            await async_execute_shell(['radar_key', radar_key, str(int(input_value))])
+
+    async def resetKeySetting(self):
+        value = await self.getKV('motion_distance_min')
+        args = ['radar_key', '--move-min', value if value else '100']
+        value = await self.getKV('motion_distance_max')
+        args.extend(['--move-max', value if value else '300'])
+        value = await self.getKV('motion_sensitivity')
+        args.extend(['--move-sens', value if value else '8'])
+        value = await self.getKV('presence_distance_min')
+        args.extend(['--exist-min', value if value else '100'])
+        value = await self.getKV('presence_distance_max')
+        args.extend(['--exist-max', value if value else '300'])
+        value = await self.getKV('presence_sensitivity')
+        args.extend(['--exist-sens', value if value else '8'])
+        value = await self.getKV('presence_cycle')
+        input_value = float(value if value else '2') * 60
+        args.extend(['--period', str(int(input_value))])
+        await async_execute_shell(args)
+
+    async def begin_learn(self):
+        """开始环境学习"""
+            # 1. 判断是否已经有进程和任务在执行
+        if self._learn_process and self._learn_process.returncode is None:
+            _LOGGER.warning("环境学习进程已在运行中，跳过本次启动。")
             return
-        await async_execute_shell(['test_way.sh', '-s', 'kv', key, value])
+            
+        if self._learn_task and not self._learn_task.done():
+            _LOGGER.warning("环境学习后台任务仍在运行中，跳过本次启动。")
+            return
+        try:
+            self._learn_process = await asyncio.create_subprocess_exec(
+                'radar_key', '--learn', 
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            self._learn_task = self.hass.async_create_background_task(self._learn_read_loop(), "radar_key_learn")
+            _LOGGER.info("开始环境学习")
+            await self.setKV('environment_study', '1')
+            await self.update_value('environment_study', '1')
+        except Exception as e:
+            _LOGGER.error(f"开始环境学习失败: {e}")
+        
+    async def _learn_read_loop(self):
+        """环境学习读取循环"""
+        assert self._learn_process is not None and self._learn_process.stdout is not None
+
+        while not self._learn_process.stdout.at_eof():
+            raw_line = await self._learn_process.stdout.readline()
+            if not raw_line:
+                break
+            line = raw_line.decode().strip()
+            _LOGGER.info(line)
+        _LOGGER.info("环境学习完成")
+        await self.setKV('environment_study', '0')
+        await self.update_value('environment_study', '0')
+
+    async def end_learn(self):
+        """结束环境学习"""
+        if self._learn_task:
+            self._learn_task.cancel()
+            try:
+                await self._learn_task
+            except asyncio.CancelledError:
+                pass
+        if self._learn_process:
+            try:
+                self._learn_process.terminate()
+                await self._learn_process.wait()
+            except ProcessLookupError:
+                pass
+        _LOGGER.info("环境学习任务已取消")
+        await self.setKV('environment_study', '0')
+        await self.update_value('environment_study', '0')
 
 realDevice = RealDevice()
