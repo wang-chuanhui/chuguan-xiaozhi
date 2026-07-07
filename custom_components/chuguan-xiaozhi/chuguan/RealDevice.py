@@ -237,9 +237,25 @@ class RealDevice:
             return self.motion_distance
         elif key == 'presence_distance':
             return self.presence_distance
+        res = ''
         if self.store:
-            return await self.store.async_get_key_value(f'kv_{key}') or ''
-        return ''
+            res = await self.store.async_get_key_value(f'kv_{key}') or ''
+        if res == '':
+            if key == 'motion_distance_min':
+                res = '100'
+            elif key == 'motion_distance_max':
+                res = '300'
+            elif key == 'motion_sensitivity':
+                res = '8'
+            elif key == 'presence_distance_min':
+                res = '100'
+            elif key == 'presence_distance_max':
+                res = '300'
+            elif key == 'presence_sensitivity':
+                res = '8'
+            elif key == 'presence_cycle':
+                res = '2'
+        return res
     
     async def setKV(self, key: str, value: str):
         if self.store:
