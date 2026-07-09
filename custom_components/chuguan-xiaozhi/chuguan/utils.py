@@ -3,6 +3,12 @@ import psutil
 import logging
 from .model import SockResponse
 import subprocess
+import aiohttp
+import async_timeout
+import aiofiles
+import tempfile
+import os
+
 
 from typing import List, Optional
 
@@ -97,3 +103,43 @@ async def async_execute_shell(args: List[str]) -> Optional[str]:
     except Exception as e:
         _LOGGER.error(f"Execute shell error: {e}")
         return None
+    
+
+
+async def fetch_data(url: str, headers=None):
+    """异步调用外部接口获取数据"""
+    for attempt in range(3):
+        try:
+            async with async_timeout.timeout(30):  # 设置超时时间
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers) as response:
+                        if response.status == 200:
+                            return await response.json()
+                        else:
+                            _LOGGER.error(f"API request failed with status {response.status}")
+                            return None
+        except Exception as e:
+            _LOGGER.error(f"Error fetching data: {e}")
+            await asyncio.sleep(2 ** attempt)
+            continue
+    return None
+
+
+
+
+async def download_file_to_tmp(url: str, filename: str) -> str:
+    """异步流式下载文件到临时目录"""
+    temp_dir = tempfile.gettempdir()
+    file_path = os.path.join(temp_dir, filename)
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"下载失败，状态码: {response.status}")
+            
+            # 异步分块写入文件，避免内存溢出
+            async with aiofiles.open(file_path, 'wb') as f:
+                async for chunk in response.content.iter_chunked(8192):
+                    await f.write(chunk)
+                    
+    return file_path

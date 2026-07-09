@@ -1,4 +1,4 @@
-from .utils import async_execute_shell
+from .utils import async_execute_shell, fetch_data
 from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
 import logging
@@ -6,7 +6,7 @@ import asyncio
 from homeassistant.core import HomeAssistant
 from .store import MyStore
 import re
-import datetime
+import json
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class RealDevice:
             status = await async_execute_shell(["radar_key", "--status", "--query-relay"])
             await self.parse_line(status)
             self._process = await asyncio.create_subprocess_exec(
-                "radar_key", "--poll", "0",
+                "stdbuf", "-oL", "radar_key", "--poll", "0",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -83,6 +83,7 @@ class RealDevice:
 
     async def parse_line(self, line: str):
         """解析雷达输出行"""
+        # _LOGGER.warning(line)
         if not line:
             return
         if "运动触发:" in line:
@@ -147,6 +148,7 @@ class RealDevice:
 
     async def update_value(self, key: str, value: any):
         """更新指定键的值"""
+        # _LOGGER.warning(f"update_value {key} {value}")
         self.hass.bus.async_fire(f"chuguan_xiaozhi_real_device_update_value", {key: value})
 
     async def stop(self):
@@ -204,6 +206,7 @@ class RealDevice:
         args.extend(map(str, color_2_on))
         args.extend(map(str, color_3_off))
         args.extend(map(str, color_3_on))
+        _LOGGER.warning(f"设置LED状态: {' '.join(args)}")
         await async_execute_shell(args)
        
     async def setAllBrightness(self, on: bool, value: int):
@@ -296,6 +299,7 @@ class RealDevice:
         value = await self.getKV('presence_cycle')
         input_value = float(value if value else '2') * 60
         args.extend(['--period', str(int(input_value))])
+        _LOGGER.warning(f"重置键设置: {' '.join(args)}")
         await async_execute_shell(args)
 
     async def begin_learn(self):
@@ -351,5 +355,33 @@ class RealDevice:
         _LOGGER.info("环境学习任务已取消")
         await self.setKV('environment_study', '0')
         await self.update_value('environment_study', '0')
+
+    async def get_firmware_update(self):
+        """获取固件更新信息"""
+        # target_name: Radar_Touchkey
+        content = await async_execute_shell(['flasher', '--get-target-name'])
+        if content is None:
+            return None
+        match = re.search(r'target_name: (\w+)', content)
+        if match is None:
+            return None
+        name = match.group(1)
+        _LOGGER.warning(f"获取到的设备名称: {name}")
+        url = f'https://xcx.chuguankj.com/radar_firmware/{name}.json'
+        data: dict | None = await fetch_data(url)
+        if data is None:
+            return None
+        data['name'] = name
+        _LOGGER.warning(f"获取到的固件信息: {data}")
+        return data
+    
+    async def install_firmware(self, filepath: str):
+        """安装固件"""
+        content = await async_execute_shell(['flasher', filepath])
+        if content:
+            return "烧录成功" in content
+        return False
+
+
 
 realDevice = RealDevice()

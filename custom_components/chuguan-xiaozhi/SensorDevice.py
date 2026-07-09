@@ -9,6 +9,10 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 import logging
 import datetime
+from homeassistant.components.update import UpdateEntity, UpdateDeviceClass, UpdateEntityFeature, _version_is_newer
+from .chuguan.hub import getAlreadyExistHub
+from .chuguan.utils import download_file_to_tmp
+from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -269,6 +273,92 @@ class EnvironmentStudySensor(BinarySensorEntity):
         self._is_on = await realDevice.getKV('environment_study') == '1'
         if self.hass:
             self.schedule_update_ha_state()
+
+class CheckUpdateButton(ButtonEntity):
+    """检查更新按钮"""
+
+    def __init__(self):
+        self._attr_name = "检查更新"
+        self._attr_unique_id = "check_update_button"
+        self._attr_device_info = realDevice.device
+        self._attr_entity_category = EntityCategory.CONFIG
+
+    async def async_press(self):
+        self.hass.bus.async_fire('chuguan_xiaozhi_real_device_check_update')
+
+        
+
+class FirmwareUpdateEntity(UpdateEntity):
+
+    def __init__(self):
+        self._attr_name = "扩展板固件更新"
+        self._attr_unique_id = "firmware_update"
+        self._attr_device_info = realDevice.device
+        self._attr_device_class = UpdateDeviceClass.FIRMWARE
+        self._attr_supported_features = UpdateEntityFeature.INSTALL
+        
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return the entity picture to use in the frontend.
+
+        Update entities return the brand icon based on the integration
+        domain by default.
+        """
+        # return (
+        #     f"https://brands.home-assistant.io/_/chuguan_home/icon.png"
+        # )
+        return None
+    
+    async def check_update(self, now=None):
+        hub = getAlreadyExistHub()
+        if hub is None:
+            return
+        install_version = await hub.store.async_get_key_value('install_version')
+        if install_version is None:
+            install_version = ''
+        self._attr_installed_version = install_version
+        self._attr_latest_version = install_version
+        data = await realDevice.get_firmware_update()
+        if data:
+            self._attr_latest_version = data.get('version', install_version)
+            self._attr_release_summary = data.get('summary', '')
+            self._attr_release_url = data.get('url', '')
+            self._download = data.get('download', '')
+            self._name = data.get('name', '')
+        self.schedule_update_ha_state()
+
+    
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        await self.check_update()
+        self.async_on_remove(
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_check_update', self.check_update)
+        )
+
+    async def async_install(self, version: str | None, backup: bool, **kwargs):
+        _LOGGER.warning(f"install firmware, version: {version}, backup: {backup}, kwargs: {kwargs}")
+        if self._download == '':
+            raise Exception("download url is empty")
+        name = f"{self._name}_{self._attr_latest_version}.hex"
+        filepath = await download_file_to_tmp(self._download, name)
+        _LOGGER.warning(f"download firmware to {filepath}")
+        success = await realDevice.install_firmware(filepath)
+        _LOGGER.warning(f"install firmware success: {success}")
+        if success:
+            hub = getAlreadyExistHub()
+            if hub:
+                await hub.store.async_set_key_value('install_version', self._attr_latest_version)
+            await self.check_update()
+
+
+    def release_notes(self) -> str | None:
+        """Return full release notes.
+
+        This is suitable for a long changelog that does not fit in the release_summary
+        property. The returned string can contain markdown.
+        """
+        raise "NotImplementedError"
     
 def getAllBinarySensor():
     return [MotionBinarySensor(), PresenceBinarySensor(), EnvironmentStudySensor()]
@@ -288,4 +378,7 @@ def getAllNumber():
     ]
 
 def getAllButton():
-    return [EnvironmentStudyButton(True)]
+    return [EnvironmentStudyButton(True), CheckUpdateButton()]
+
+def getAllUpdate():
+    return [FirmwareUpdateEntity()]

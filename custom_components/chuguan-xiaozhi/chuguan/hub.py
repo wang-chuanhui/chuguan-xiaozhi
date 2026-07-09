@@ -105,6 +105,11 @@ class Hub:
         self.setup_later_update()
         self.check_weather_interval = async_track_time_interval(self.hass, self.interval_check_weather, timedelta(minutes=1))
         await realDevice.start(self.hass)
+        install_version = await self.store.async_get_key_value('install_version')
+        if install_version is None:
+            now = datetime.now()
+            formatted_date = now.strftime("%Y.%-m.%-d")
+            await self.store.async_set_key_value('install_version', formatted_date)
 
     def setup_later_update(self):
         _LOGGER.info("Setup later update")

@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.LIGHT, Platform.COVER, Platform.BUTTON, Platform.CLIMATE, Platform.VALVE]
-PLATFORMS = [Platform.LIGHT, Platform.SWITCH, Platform.MEDIA_PLAYER, Platform.BINARY_SENSOR, Platform.SENSOR, Platform.BUTTON, Platform.NUMBER]
+PLATFORMS = [Platform.LIGHT, Platform.SWITCH, Platform.MEDIA_PLAYER, Platform.BINARY_SENSOR, Platform.SENSOR, Platform.BUTTON, Platform.NUMBER, Platform.UPDATE]
 
 type HubConfigEntry = ConfigEntry[Hub]
 
@@ -31,7 +31,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
         }
         return True
     except Exception as e:
-        hub.stop()
+        await hub.stop()
         _LOGGER.error("start failed %s", e)
         raise ConfigEntryAuthFailed from e
 
