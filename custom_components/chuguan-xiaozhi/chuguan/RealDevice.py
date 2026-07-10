@@ -31,6 +31,8 @@ class RealDevice:
     way_2 = False
     way_3 = False
 
+    is_monitor = False
+
     def __init__(self):
         """"""
         _LOGGER.info("RealDevice init")
@@ -45,6 +47,7 @@ class RealDevice:
     async def start(self, hass: HomeAssistant):
         """启动雷达监控子进程"""
         try:
+            await self.stop()
             await self.resetKeySetting()
             await self.setLed()
             status = await async_execute_shell(["radar_key", "--status", "--query-relay"])
@@ -58,10 +61,14 @@ class RealDevice:
             self.hass = hass
             self._task = self.hass.async_create_background_task(self._read_loop(), "radar_key_monitor")
             _LOGGER.info("Radar monitor started successfully.")
+            self.is_monitor = True
         except FileNotFoundError:
             _LOGGER.error("radar_key command not found. Please check installation.")
+            self.is_monitor = False
         except Exception as e:
             _LOGGER.error(f"Error starting radar monitor: {e}")
+            self.is_monitor = False
+        await self.update_value('is_monitor', self.is_monitor)
 
     async def _read_loop(self):
         """持续读取并解析雷达输出"""
@@ -76,9 +83,12 @@ class RealDevice:
                 line = raw_line.decode('utf-8').strip()
                 await self.parse_line(line)
             except asyncio.CancelledError:
+                _LOGGER.info("Radar monitor task cancelled.")
                 break
             except Exception as e:
                 _LOGGER.error(f"Error reading radar output: {e}")
+        self.is_monitor = False
+        await self.update_value('is_monitor', self.is_monitor)
 
 
     async def parse_line(self, line: str):
@@ -157,16 +167,23 @@ class RealDevice:
             self._task.cancel()
             try:
                 await self._task
+                self._task = None
             except asyncio.CancelledError:
-                pass
+                _LOGGER.error("Radar monitor task cancelled error.")
+            except Exception as e:
+                _LOGGER.error(f"Error stopping radar monitor: {e}")
         
         if self._process:
             try:
                 self._process.terminate()
                 await self._process.wait()
+                self._process = None
             except ProcessLookupError:
-                pass
-        _LOGGER.info("Radar monitor stopped.")
+                _LOGGER.warning("Radar monitor process lookup not found.")
+            except Exception as e:
+                _LOGGER.error(f"Error stopping radar monitor: {e}")
+        self.is_monitor = False
+        await self.update_value('is_monitor', False)
 
     async def getWayOn(self, way: int) -> bool:
         if way == 1:
@@ -329,12 +346,17 @@ class RealDevice:
         assert self._learn_process is not None and self._learn_process.stdout is not None
 
         while not self._learn_process.stdout.at_eof():
-            raw_line = await self._learn_process.stdout.readline()
-            if not raw_line:
+            try:
+                raw_line = await self._learn_process.stdout.readline()
+                if not raw_line:
+                    break
+                line = raw_line.decode().strip()
+            except asyncio.CancelledError:
+                _LOGGER.warning("环境学习任务已取消")
                 break
-            line = raw_line.decode().strip()
-            _LOGGER.info(line)
-        _LOGGER.info("环境学习完成")
+            except Exception as e:
+                _LOGGER.error(f"环境学习读取失败: {e}")
+        _LOGGER.info("环境学习结束")
         await self.setKV('environment_study', '0')
         await self.update_value('environment_study', '0')
 
@@ -344,12 +366,14 @@ class RealDevice:
             self._learn_task.cancel()
             try:
                 await self._learn_task
+                self._learn_task = None
             except asyncio.CancelledError:
                 pass
         if self._learn_process:
             try:
                 self._learn_process.terminate()
                 await self._learn_process.wait()
+                self._learn_process = None
             except ProcessLookupError:
                 pass
         _LOGGER.info("环境学习任务已取消")
@@ -366,18 +390,20 @@ class RealDevice:
         if match is None:
             return None
         name = match.group(1)
-        _LOGGER.warning(f"获取到的设备名称: {name}")
+        _LOGGER.info(f"获取到的设备名称: {name}")
         url = f'https://xcx.chuguankj.com/radar_firmware/{name}.json'
         data: dict | None = await fetch_data(url)
         if data is None:
             return None
         data['name'] = name
-        _LOGGER.warning(f"获取到的固件信息: {data}")
+        _LOGGER.info(f"获取到的固件信息: {data}")
         return data
     
     async def install_firmware(self, filepath: str):
         """安装固件"""
+        await self.stop()
         content = await async_execute_shell(['flasher', filepath])
+        await self.start(self.hass)
         if content:
             return "烧录成功" in content
         return False

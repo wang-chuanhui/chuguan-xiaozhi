@@ -274,6 +274,48 @@ class EnvironmentStudySensor(BinarySensorEntity):
         if self.hass:
             self.schedule_update_ha_state()
 
+class HardwareMonitorButton(ButtonEntity):
+    """硬件监控按钮"""
+
+    def __init__(self):
+        self._attr_name = "执行扩展板监控"
+        self._attr_unique_id = "hardware_monitor_button"
+        self._attr_device_info = realDevice.device
+        self._attr_entity_category = EntityCategory.CONFIG
+
+    async def async_press(self):
+        await realDevice.start(self.hass)
+
+class HardwareMonitorSensor(BinarySensorEntity):
+    """硬件监控传感器"""
+    def __init__(self):
+        self._attr_name = "扩展板监控"
+        self._attr_unique_id = "hardware_monitor_status"
+        self._attr_device_info = realDevice.device
+        self._is_on = False
+        self._attr_device_class = BinarySensorDeviceClass.RUNNING
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def is_on(self):
+        return self._is_on
+    
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._is_on = realDevice.is_monitor
+        self.schedule_update_ha_state()
+        # self.async_on_remove(
+        #     async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
+        # )
+        self.async_on_remove(
+            self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_value)
+        )
+
+    async def update_value(self, now=None):
+        self._is_on = realDevice.is_monitor
+        if self.hass:
+            self.schedule_update_ha_state()
+
 class CheckUpdateButton(ButtonEntity):
     """检查更新按钮"""
 
@@ -337,14 +379,14 @@ class FirmwareUpdateEntity(UpdateEntity):
         )
 
     async def async_install(self, version: str | None, backup: bool, **kwargs):
-        _LOGGER.warning(f"install firmware, version: {version}, backup: {backup}, kwargs: {kwargs}")
+        _LOGGER.info(f"install firmware, version: {version}, backup: {backup}, kwargs: {kwargs}")
         if self._download == '':
             raise Exception("download url is empty")
         name = f"{self._name}_{self._attr_latest_version}.hex"
         filepath = await download_file_to_tmp(self._download, name)
-        _LOGGER.warning(f"download firmware to {filepath}")
+        _LOGGER.info(f"download firmware to {filepath}")
         success = await realDevice.install_firmware(filepath)
-        _LOGGER.warning(f"install firmware success: {success}")
+        _LOGGER.info(f"install firmware success: {success}")
         if success:
             hub = getAlreadyExistHub()
             if hub:
@@ -361,7 +403,7 @@ class FirmwareUpdateEntity(UpdateEntity):
         raise "NotImplementedError"
     
 def getAllBinarySensor():
-    return [MotionBinarySensor(), PresenceBinarySensor(), EnvironmentStudySensor()]
+    return [MotionBinarySensor(), PresenceBinarySensor(), EnvironmentStudySensor(), HardwareMonitorSensor()]
 
 def getAllSensor():
     return [DistanceSensor("人体存在目标距离", 'presence'), DistanceSensor("运动感应目标距离", 'motion')]
@@ -378,7 +420,7 @@ def getAllNumber():
     ]
 
 def getAllButton():
-    return [EnvironmentStudyButton(True), CheckUpdateButton()]
+    return [EnvironmentStudyButton(True), CheckUpdateButton(), HardwareMonitorButton()]
 
 def getAllUpdate():
     return [FirmwareUpdateEntity()]
