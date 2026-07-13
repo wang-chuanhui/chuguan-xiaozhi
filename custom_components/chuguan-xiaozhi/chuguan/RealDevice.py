@@ -277,6 +277,11 @@ class RealDevice:
                 res = '2'
         return res
     
+    def modify_sensitivity(self,value: str | None) -> str:
+        if value is None:
+            return '8'
+        return str(int(12 - float(value)))
+    
     async def setKV(self, key: str, value: str):
         if self.store:
             await self.store.async_set_key_value(f'kv_{key}', value)
@@ -288,12 +293,14 @@ class RealDevice:
             radar_key = '--move-max'
         elif key == 'motion_sensitivity':
             radar_key = '--move-sens'
+            input_value = 12 - input_value
         elif key == 'presence_distance_min':
             radar_key = '--exist-min'
         elif key == 'presence_distance_max':
             radar_key = '--exist-max'
         elif key == 'presence_sensitivity':
             radar_key = '--exist-sens'
+            input_value = 12 - input_value
         elif key == 'presence_cycle':
             radar_key = '--period'
             input_value = input_value * 60
@@ -306,13 +313,13 @@ class RealDevice:
         value = await self.getKV('motion_distance_max')
         args.extend(['--move-max', value if value else '300'])
         value = await self.getKV('motion_sensitivity')
-        args.extend(['--move-sens', value if value else '8'])
+        args.extend(['--move-sens', self.modify_sensitivity(value)])
         value = await self.getKV('presence_distance_min')
         args.extend(['--exist-min', value if value else '100'])
         value = await self.getKV('presence_distance_max')
         args.extend(['--exist-max', value if value else '300'])
         value = await self.getKV('presence_sensitivity')
-        args.extend(['--exist-sens', value if value else '8'])
+        args.extend(['--exist-sens', self.modify_sensitivity(value)])
         value = await self.getKV('presence_cycle')
         input_value = float(value if value else '2') * 60
         args.extend(['--period', str(int(input_value))])

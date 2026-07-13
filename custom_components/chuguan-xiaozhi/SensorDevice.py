@@ -166,9 +166,9 @@ class SettingNumber(NumberEntity):
             self._attr_mode = NumberMode.SLIDER
         elif "sensitivity" in key:  # 灵敏度
             self._attr_native_min_value = 0
-            self._attr_native_max_value = 49
+            self._attr_native_max_value = 12
             self._attr_native_step = 1
-            self._native_value = 8
+            self._native_value = 12 - 4
             self._attr_mode = NumberMode.SLIDER
         elif "distance" in key:  # 距离阈值 (最小/最大值)
             self._attr_native_min_value = 100
@@ -410,13 +410,13 @@ def getAllSensor():
 
 def getAllNumber():
     return [
-        SettingNumber("存在判断周期", KeyType.PRESENCE_CYCLE),
-        SettingNumber("运动灵敏度", KeyType.MOTION_SENSITIVITY),
-        SettingNumber("存在灵敏度", KeyType.PRESENCE_SENSITIVITY),
-        SettingNumber("运动最小距离", KeyType.MOTION_DISTANCE_MIN),
-        SettingNumber("存在最小距离", KeyType.PRESENCE_DISTANCE_MIN),
-        SettingNumber("运动最大距离", KeyType.MOTION_DISTANCE_MAX),
-        SettingNumber("存在最大距离", KeyType.PRESENCE_DISTANCE_MAX),
+        SettingNumber("判断周期", KeyType.PRESENCE_CYCLE),
+        SettingNumber("灵敏度", KeyType.MOTION_SENSITIVITY),
+        SettingNumber("灵敏度", KeyType.PRESENCE_SENSITIVITY),
+        SettingNumber("最小距离", KeyType.MOTION_DISTANCE_MIN),
+        SettingNumber("最小距离", KeyType.PRESENCE_DISTANCE_MIN),
+        SettingNumber("最大距离", KeyType.MOTION_DISTANCE_MAX),
+        SettingNumber("最大距离", KeyType.PRESENCE_DISTANCE_MAX),
     ]
 
 def getAllButton():
