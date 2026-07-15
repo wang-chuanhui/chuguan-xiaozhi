@@ -42,12 +42,14 @@ class RealDevice:
         self._learn_task: asyncio.Task | None = None
         self.hass: HomeAssistant | None = None
         self.store: MyStore | None = None
+        self.target_name: str | None = None
 
 
     async def start(self, hass: HomeAssistant):
         """启动雷达监控子进程"""
         try:
             await self.stop()
+            self.target_name = await self.get_target_name()
             await self.resetKeySetting()
             await self.setLed()
             status = await async_execute_shell(["radar_key", "--status", "--query-relay"])
@@ -387,9 +389,7 @@ class RealDevice:
         await self.setKV('environment_study', '0')
         await self.update_value('environment_study', '0')
 
-    async def get_firmware_update(self):
-        """获取固件更新信息"""
-        # target_name: Radar_Touchkey
+    async def get_target_name(self):
         content = await async_execute_shell(['flasher', '--get-target-name'])
         if content is None:
             return None
@@ -398,6 +398,15 @@ class RealDevice:
             return None
         name = match.group(1)
         _LOGGER.info(f"获取到的设备名称: {name}")
+        return name
+
+    async def get_firmware_update(self):
+        """获取固件更新信息"""
+        name = await self.get_target_name()
+        if name is None:
+            name = self.target_name
+        if name is None:
+            return None
         url = f'https://xcx.chuguankj.com/radar_firmware/{name}.json'
         data: dict | None = await fetch_data(url)
         if data is None:
