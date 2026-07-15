@@ -419,7 +419,14 @@ class RealDevice:
         """安装固件"""
         await self.stop()
         content = await async_execute_shell(['flasher', filepath])
+        await asyncio.sleep(1)
         await self.start(self.hass)
+        for i in range(5):
+            if self.is_monitor != True:
+                await asyncio.sleep(1)
+                await self.start(self.hass)
+            else:
+                break
         if content:
             return "烧录成功" in content
         return False
