@@ -100,8 +100,7 @@ def set_screen_on(on: bool):
     try:
         if is_gnome_running() == False:
             return set_monitor_status(on)
-        value = 0 if on else 3
-        command = ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Set', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode', f'<int32 {value}>']
+        command = ['gdbus', 'call', '--session', '--dest', 'com.chuguansmart.ToggleKeyboard', '--object-path', '/com/chuguansmart/ToggleKeyboard', '--method', 'com.chuguansmart.ToggleKeyboard.PowerOnScreen' if on else 'com.chuguansmart.ToggleKeyboard.PowerOffScreen']
         _LOGGER.info(' '.join(command))
         res = subprocess.run(
             command, 
