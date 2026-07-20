@@ -77,7 +77,7 @@ def is_gnome_running():
         # 执行 ps -e | grep gnome-session 命令
         # shell=True 允许使用管道符 |
         result = subprocess.run(
-            "ps -e | grep gnome-session", 
+            "pgrep -f /usr/libexec/gnome-session-binary", 
             shell=True, 
             stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE,
@@ -187,7 +187,7 @@ def get_monitor_status():
         return False
         
     except Exception as e:
-        _LOGGER.error(f"执行出错: {e}")
+        # _LOGGER.error(f"执行出错: {e}")
         return False
 
 def set_monitor_status(on: bool):
