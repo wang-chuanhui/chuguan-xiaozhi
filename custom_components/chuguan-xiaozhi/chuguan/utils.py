@@ -72,6 +72,26 @@ def execute_shell(args: list[str]):
         _LOGGER.error(f"execute shell error: {e}")
         return None
 
+def is_gnome_running():
+    try:
+        # 执行 ps -e | grep gnome-session 命令
+        # shell=True 允许使用管道符 |
+        result = subprocess.run(
+            "ps -e | grep gnome-session", 
+            shell=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        # 如果命令执行成功且有输出，说明找到了进程
+        if result.returncode == 0 and result.stdout.strip():
+            return True
+        return False
+        
+    except Exception as e:
+        _LOGGER.error(f"执行出错: {e}")
+        return False
+
 
 async def async_execute_shell(args: List[str]) -> Optional[str]:
     """
@@ -80,7 +100,7 @@ async def async_execute_shell(args: List[str]) -> Optional[str]:
     try:
         # 1. 创建子进程
         # 注意：这里使用传入的 args 列表，不需要 shell=True
-        _LOGGER.info(f"async_execute_shell with args {args}")
+        # _LOGGER.info(f"async_execute_shell with args {args}")
         proc = await asyncio.create_subprocess_exec(
             *args,  # 解包参数列表
             stdout=asyncio.subprocess.PIPE,
@@ -94,8 +114,8 @@ async def async_execute_shell(args: List[str]) -> Optional[str]:
 
         # 3. 解码并返回结果
         # 如果命令执行失败（返回非0），可以根据需要记录日志，但不要抛出异常中断逻辑
-        if proc.returncode != 0:
-            _LOGGER.warning(f"Shell command exited with code {proc.returncode}: {stderr.decode().strip()}")
+        # if proc.returncode != 0:
+            # _LOGGER.warning(f"Shell command exited with code {proc.returncode}: {stderr.decode().strip()}")
 
         content = stdout.decode().strip()
         return content
@@ -143,3 +163,46 @@ async def download_file_to_tmp(url: str, filename: str) -> str:
                     await f.write(chunk)
                     
     return file_path
+
+
+def get_monitor_status():
+    try:
+        # 执行 xset q 命令
+        result = subprocess.run(
+            ['xset', 'q'], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            text=True, 
+            env={'DISPLAY': ':0'}
+        )
+        
+        # 逐行读取输出，找到包含 "Monitor" 的那一行
+        for line in result.stdout.splitlines():
+            if 'Monitor' in line:
+                # 假设输出格式是 "Monitor is On" 或 "Monitor is Off"
+                # 取这一行最后一个单词就是状态
+                status = line.strip().split()[-1].lower()
+                return status == 'on'
+                
+        return False
+        
+    except Exception as e:
+        _LOGGER.error(f"执行出错: {e}")
+        return False
+
+def set_monitor_status(on: bool):
+    try:
+        # 执行 xset q 命令
+        result = subprocess.run(
+            ['xset', 'dpms', 'force', 'on' if on else 'off'], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            text=True, 
+            env={'DISPLAY': ':0'}
+        )
+        
+        return result.stdout.strip()
+        
+    except Exception as e:
+        _LOGGER.error(f"执行出错: {e}")
+        return False

@@ -2,6 +2,7 @@ import os
 import subprocess
 import logging
 import platform
+from .utils import is_gnome_running, get_monitor_status, set_monitor_status
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +78,8 @@ def is_screen_on():
     """判断屏幕是否打开"""
     # gdbus call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.freedesktop.DBus.Properties.Get org.gnome.Mutter.DisplayConfig PowerSaveMode
     try:
+        if is_gnome_running() == False:
+            return get_monitor_status()
         res = subprocess.run(
             ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Get', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode'], 
             capture_output=True, 
@@ -95,6 +98,8 @@ def is_screen_on():
 
 def set_screen_on(on: bool):
     try:
+        if is_gnome_running() == False:
+            return set_monitor_status(on)
         value = 0 if on else 3
         command = ['gdbus', 'call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig', '--method', 'org.freedesktop.DBus.Properties.Set', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode', f'<int32 {value}>']
         _LOGGER.info(' '.join(command))
