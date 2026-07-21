@@ -27,6 +27,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     _LOGGER.info("async_setup with config %s", config)
     hub = getHub(hass)
     try:
+        hass.http.register_view(CGAPIConfigView)
         await hub.setup()
         hass.data[DOMAIN] = {
             "hub": hub,
@@ -56,7 +57,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
         entry.runtime_data = hub
         await hub.setup()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-        hass.http.register_view(CGAPIConfigView)
         return True
     except Exception as e:
         hub.stop()
