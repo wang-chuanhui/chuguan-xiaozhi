@@ -8,6 +8,8 @@ from homeassistant.core import HomeAssistant
 import logging
 from .chuguan.hub import Hub, getHub
 from .chuguan.const import DOMAIN
+from .http import CGAPIConfigView
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
         entry.runtime_data = hub
         await hub.setup()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        hass.http.register_view(CGAPIConfigView)
         return True
     except Exception as e:
         hub.stop()
