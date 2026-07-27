@@ -71,8 +71,13 @@ class VlcDevice(MediaPlayerEntity):
             self._attr_state = MediaPlayerState.PAUSED
         else:
             self._attr_state = MediaPlayerState.IDLE
-        self._attr_media_duration = self._vlc.get_length() / 1000
-        position = self._vlc.get_position() * self._attr_media_duration
+        attr_media_duration = self._vlc.get_length() / 1000
+        if attr_media_duration < 0:
+            attr_media_duration = 0
+        self._attr_media_duration = attr_media_duration
+        position = self._vlc.get_position() * attr_media_duration
+        if position <= 0:
+            position = 0
         if position != self._attr_media_position:
             self._attr_media_position_updated_at = dt_util.utcnow()
             self._attr_media_position = position
