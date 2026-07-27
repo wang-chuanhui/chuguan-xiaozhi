@@ -225,7 +225,7 @@ class RealDevice:
         args.extend(map(str, color_2_on))
         args.extend(map(str, color_3_off))
         args.extend(map(str, color_3_on))
-        _LOGGER.warning(f"设置LED状态: {' '.join(args)}")
+        # _LOGGER.warning(f"设置LED状态: {' '.join(args)}")
         await async_execute_shell(args)
        
     async def setAllBrightness(self, on: bool, value: int):
@@ -325,7 +325,7 @@ class RealDevice:
         value = await self.getKV('presence_cycle')
         input_value = float(value if value else '2') * 60
         args.extend(['--period', str(int(input_value))])
-        _LOGGER.warning(f"重置键设置: {' '.join(args)}")
+        # _LOGGER.warning(f"重置键设置: {' '.join(args)}")
         await async_execute_shell(args)
 
     async def begin_learn(self):
