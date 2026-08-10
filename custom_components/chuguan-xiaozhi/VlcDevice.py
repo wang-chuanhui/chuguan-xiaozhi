@@ -24,6 +24,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
+from .chuguan.RealDevice import realDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class VlcDevice(MediaPlayerEntity):
         self._attr_unique_id = "media_player"
         self._attr_should_poll = True
         self._cancelable = None
+        self._attr_device_info = realDevice.device
 
     def update(self):
         """Get the latest details from the device."""
