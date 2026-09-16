@@ -1,3 +1,4 @@
+import shutil
 from .utils import async_execute_shell, fetch_data
 from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
@@ -12,6 +13,38 @@ import json
 _LOGGER = logging.getLogger(__name__)
 
 via_device=(DOMAIN, "ha_screen_device")
+
+
+def read_config(path):
+    config = {}
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+
+                # 跳过空行和注释
+                if not line or line.startswith("#"):
+                    continue
+
+                if "=" not in line:
+                    continue
+
+                key, value = line.split("=", 1)
+
+                config[key.strip()] = value.strip()
+    except Exception:
+        _LOGGER.error("Failed to read config file: %s", path)
+
+    return config
+
+
+config = read_config("/etc/cg-release")
+
+
+product_type = config.get("PRODUCT_TYPE", "")
+is_gateway = product_type == "gateway"
+
 
 class RealDevice:
 
@@ -32,6 +65,10 @@ class RealDevice:
     way_3 = False
 
     is_monitor = False
+
+    has_radar_key = is_gateway != True
+    has_speaker = is_gateway != True
+    has_screen = is_gateway != True
 
     def __init__(self):
         """"""

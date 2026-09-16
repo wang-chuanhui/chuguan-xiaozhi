@@ -403,12 +403,18 @@ class FirmwareUpdateEntity(UpdateEntity):
         raise "NotImplementedError"
     
 def getAllBinarySensor():
+    if realDevice.has_radar_key == False:
+        return []
     return [MotionBinarySensor(), PresenceBinarySensor(), EnvironmentStudySensor(), HardwareMonitorSensor()]
 
 def getAllSensor():
+    if realDevice.has_radar_key == False:
+        return []
     return [DistanceSensor("人体存在目标距离", 'presence'), DistanceSensor("运动感应目标距离", 'motion')]
 
 def getAllNumber():
+    if realDevice.has_radar_key == False:
+        return []
     return [
         SettingNumber("判断周期", KeyType.PRESENCE_CYCLE),
         SettingNumber("灵敏度", KeyType.MOTION_SENSITIVITY),
@@ -420,7 +426,11 @@ def getAllNumber():
     ]
 
 def getAllButton():
+    if realDevice.has_radar_key == False:
+        return []
     return [EnvironmentStudyButton(True), CheckUpdateButton(), HardwareMonitorButton()]
 
 def getAllUpdate():
+    if realDevice.has_radar_key == False:
+        return []
     return [FirmwareUpdateEntity()]

@@ -88,5 +88,7 @@ class ScreenLight(LightEntity):
         self.schedule_update_ha_state()
 
 def getScreenDevice():
+    if realDevice.has_screen == False:
+        return []
     screen = ScreenLight()
-    return screen
+    return [screen]

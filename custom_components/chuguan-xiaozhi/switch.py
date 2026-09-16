@@ -20,9 +20,16 @@ async def async_setup_entry(
     """Set up the demo switch platform."""
     async_add_entities(
         [
-            MuteSwitch(),
+            *getMuteSwitch(),
         ]
     )
+
+
+def getMuteSwitch():
+    if realDevice.has_radar_key == False:
+        return []
+    return [MuteSwitch()]
+
 
 
 class MuteSwitch(SwitchEntity):

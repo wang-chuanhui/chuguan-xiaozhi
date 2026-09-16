@@ -9,5 +9,5 @@ from .ScreenDevice import getScreenDevice
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up the light platform."""    
     wayDevices = getAllWayDevices()
-    async_add_entities([*wayDevices, getScreenDevice()])
+    async_add_entities([*wayDevices, *getScreenDevice()])
 

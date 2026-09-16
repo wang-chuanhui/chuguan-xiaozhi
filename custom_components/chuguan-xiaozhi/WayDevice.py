@@ -178,6 +178,8 @@ class WayBacklight(LightEntity):
         return {"conversation":{"should_expose":False}}
     
 def getAllWayDevices():
+    if realDevice.has_radar_key == False:
+        return []
     way1 = WayLight(1, realDevice.way1Device)
     way2 = WayLight(2, realDevice.way2Device)
     way3 = WayLight(3, realDevice.way3Device)

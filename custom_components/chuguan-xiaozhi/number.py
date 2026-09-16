@@ -10,10 +10,15 @@ from .chuguan.RealDevice import realDevice
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up the number platform."""
-    volume = VolumeNumber()
+    volume = getVolumeNumber()
     numbers = getAllNumber()
-    async_add_entities([volume, *numbers])
+    async_add_entities([*volume, *numbers])
 
+
+def getVolumeNumber():
+    if realDevice.has_speaker == False:
+        return []
+    return [VolumeNumber()]
 
 
 class VolumeNumber(NumberEntity):

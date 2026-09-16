@@ -3,7 +3,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
+from .chuguan.RealDevice import realDevice
 
 import logging
 
@@ -17,6 +17,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Demo config entry."""
+    if realDevice.has_speaker == False:
+        return None
     try:
         from .VlcDevice import VlcDevice
 
