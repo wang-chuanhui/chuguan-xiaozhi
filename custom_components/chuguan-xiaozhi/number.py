@@ -6,6 +6,7 @@ from .chuguan.volume import watch_volume, get_volume, set_volume, set_mute, get_
 import asyncio
 from .SensorDevice import getAllNumber
 from .chuguan.RealDevice import realDevice
+from .chuguan.utils import show_entity_id
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
@@ -71,6 +72,7 @@ class VolumeNumber(NumberEntity):
             self.hass.bus.async_fire("volume_mute_changed", info)
 
         self._monitor_process = await watch_volume(handle_volume_change)
+        show_entity_id(self.entity_id, self.hass)
 
     async def will_remove_from_hass(self) -> None:
         """Entity will be removed from hass."""

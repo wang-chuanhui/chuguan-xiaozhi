@@ -13,6 +13,8 @@ from homeassistant.components.update import UpdateEntity, UpdateDeviceClass, Upd
 from .chuguan.hub import getAlreadyExistHub
 from .chuguan.utils import download_file_to_tmp
 from homeassistant.exceptions import HomeAssistantError
+from .chuguan.utils import show_entity_id
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +58,7 @@ class MotionBinarySensor(BinarySensorEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_is_on)
         )
+        show_entity_id(self.entity_id, self.hass)
     
     async def update_is_on(self, now):
         """Update the binary sensor state."""
@@ -90,6 +93,7 @@ class PresenceBinarySensor(BinarySensorEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_is_on)
         )
+        show_entity_id(self.entity_id, self.hass)
     
     async def update_is_on(self, now):
         oldValue = self._is_on
@@ -127,6 +131,7 @@ class DistanceSensor(SensorEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_Distance)
         )
+        show_entity_id(self.entity_id, self.hass)
     
     async def update_Distance(self, now):
         newValue = 0
@@ -226,6 +231,7 @@ class SettingNumber(NumberEntity):
         # self.async_on_remove(
         #     async_track_time_interval(self.hass, self.update_value, timedelta(seconds=1))
         # )
+        show_entity_id(self.entity_id, self.hass)
 
 class EnvironmentStudyButton(ButtonEntity):
     """环境学习按钮"""
@@ -245,6 +251,11 @@ class EnvironmentStudyButton(ButtonEntity):
         else:
             await realDevice.end_learn()
 
+    
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        show_entity_id(self.entity_id, self.hass)
+    
 class EnvironmentStudySensor(BinarySensorEntity):
     """环境学习传感器"""
     def __init__(self):
@@ -268,6 +279,7 @@ class EnvironmentStudySensor(BinarySensorEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_value)
         )
+        show_entity_id(self.entity_id, self.hass)
 
     async def update_value(self, now=None):
         self._is_on = await realDevice.getKV('environment_study') == '1'
@@ -285,6 +297,10 @@ class HardwareMonitorButton(ButtonEntity):
 
     async def async_press(self):
         await realDevice.start(self.hass)
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        show_entity_id(self.entity_id, self.hass)
 
 class HardwareMonitorSensor(BinarySensorEntity):
     """硬件监控传感器"""
@@ -310,6 +326,7 @@ class HardwareMonitorSensor(BinarySensorEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_value)
         )
+        show_entity_id(self.entity_id, self.hass)
 
     async def update_value(self, now=None):
         self._is_on = realDevice.is_monitor
@@ -327,6 +344,10 @@ class CheckUpdateButton(ButtonEntity):
 
     async def async_press(self):
         self.hass.bus.async_fire('chuguan_xiaozhi_real_device_check_update')
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        show_entity_id(self.entity_id, self.hass)
 
         
 
@@ -377,6 +398,7 @@ class FirmwareUpdateEntity(UpdateEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_check_update', self.check_update)
         )
+        show_entity_id(self.entity_id, self.hass)
 
     async def async_install(self, version: str | None, backup: bool, **kwargs):
         _LOGGER.info(f"install firmware, version: {version}, backup: {backup}, kwargs: {kwargs}")

@@ -10,6 +10,7 @@ from .chuguan.RealDevice import realDevice
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from homeassistant.const import EntityCategory
+from .chuguan.utils import show_entity_id
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ class WayLight(LightEntity):
         self.async_on_remove(
             self.hass.bus.async_listen('chuguan_xiaozhi_real_device_update_value', self.update_way)
         )
+        show_entity_id(self.entity_id, self.hass)
 
     async def async_will_remove_from_hass(self):
         await super().async_will_remove_from_hass()
@@ -109,6 +111,7 @@ class BacklightBrightness(LightEntity):
         await super().async_added_to_hass()
         self._brightness = await realDevice.getAllBrightness(self._isOn)
         self.schedule_update_ha_state()
+        show_entity_id(self.entity_id, self.hass)
 
 
 
@@ -167,6 +170,7 @@ class WayBacklight(LightEntity):
         self._rgb_color = await realDevice.getWayColor(self._way, self._isOn)
         self._listen_event = self.hass.bus.async_listen(WAY_BACKLIGHT_BRIGHTNESS_EVENT, self._on_way_backlight_brightness_event)
         self.schedule_update_ha_state()
+        show_entity_id(self.entity_id, self.hass)
 
     async def async_will_remove_from_hass(self):
         await super().async_will_remove_from_hass()

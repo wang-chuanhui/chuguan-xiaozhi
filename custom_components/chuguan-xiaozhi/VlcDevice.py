@@ -25,6 +25,7 @@ import homeassistant.util.dt as dt_util
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from .chuguan.RealDevice import realDevice
+from .chuguan.utils import show_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -165,6 +166,7 @@ class VlcDevice(MediaPlayerEntity):
         """Entity added to hass."""
         await super().async_added_to_hass()
         self._cancelable = async_track_time_interval(self.hass, self.update_state, timedelta(seconds=1))
+        show_entity_id(self.entity_id, self.hass)
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity will be removed from hass."""

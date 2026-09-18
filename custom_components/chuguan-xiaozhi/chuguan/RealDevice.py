@@ -45,10 +45,12 @@ config = read_config("/etc/cg-release")
 product_type = config.get("PRODUCT_TYPE", "")
 is_gateway = product_type == "gateway"
 
+display_name = "HA网关" if is_gateway else "HA屏"
+
 
 class RealDevice:
 
-    device = DeviceInfo(manufacturer="初冠", model="小智", name="HA屏", identifiers={via_device}, model_id="cgxz")
+    device = DeviceInfo(manufacturer="初冠", model="小智", name=display_name, identifiers={via_device}, model_id="cgxz")
     
     way1Device = DeviceInfo(manufacturer="初冠", model="小智", name="按键1", identifiers={(DOMAIN, "device_way_1")}, model_id="cgxz", via_device=via_device)
     way2Device = DeviceInfo(manufacturer="初冠", model="小智", name="按键2", identifiers={(DOMAIN, "device_way_2")}, model_id="cgxz", via_device=via_device)
@@ -67,8 +69,8 @@ class RealDevice:
     is_monitor = False
 
     has_radar_key = is_gateway != True
-    has_speaker = is_gateway != True
-    has_screen = is_gateway != True
+    has_speaker = True
+    has_screen = True
 
     def __init__(self):
         """"""

@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .chuguan.volume import get_mute, set_mute
 from .chuguan.RealDevice import realDevice
+from .chuguan.utils import show_entity_id
 
 
 async def async_setup_entry(
@@ -26,7 +27,7 @@ async def async_setup_entry(
 
 
 def getMuteSwitch():
-    if realDevice.has_radar_key == False:
+    if realDevice.has_speaker == False:
         return []
     return [MuteSwitch()]
 
@@ -72,6 +73,7 @@ class MuteSwitch(SwitchEntity):
             self.schedule_update_ha_state()
 
         self.cancel = self.hass.bus.async_listen("volume_mute_changed", handle_mute_change)
+        show_entity_id(self.entity_id, self.hass)
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""

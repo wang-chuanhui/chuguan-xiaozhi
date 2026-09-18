@@ -5,7 +5,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import NoEventData, ConfigType
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_STATE_CHANGED
 from homeassistant.helpers.device_registry import EventDeviceRegistryUpdatedData, async_get as async_get_device_registry
-from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, EVENT_ENTITY_REGISTRY_UPDATED, EventEntityRegistryUpdatedData
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, EVENT_ENTITY_REGISTRY_UPDATED, EventEntityRegistryUpdatedData, RegistryEntryHider
 from homeassistant.helpers.area_registry import async_get as async_get_area_registry, EVENT_AREA_REGISTRY_UPDATED, EventAreaRegistryUpdatedData
 from homeassistant.helpers.event import async_call_later
 from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
@@ -122,6 +122,7 @@ class Hub:
         """Handle home assistant started event."""
         _LOGGER.info("Home assistant started: %s", ev)
         self.update_entities()
+        self.hide_no_support_entities()
         # self.setup_later_update()
 
     @callback
@@ -170,6 +171,15 @@ class Hub:
         """定时检查天气状态"""
         self.hass.create_task(check_all_met_weather(self.hass))
 
+    def hide_no_support_entities(self):
+        """隐藏不支持的实体"""
+        entity_registry = async_get_entity_registry(self.hass)
+        entities = list(entity_registry.entities.values())
+        for entity in entities:
+            state = self.hass.states.get(entity.entity_id)
+            if state is not None and state.state == 'unavailable':
+                entity_registry.async_update_entity(entity_id=entity.entity_id, hidden_by=RegistryEntryHider.INTEGRATION)
+
     def update_entities(self):
         """Update entities"""
         if self.later_update_cancel is not None:
@@ -217,6 +227,9 @@ class Hub:
         entities.sort(key=lambda x: (x.entity_id))
         update_entities: list[str] = []
         for entity in entities:
+            state = self.hass.states.get(entity.entity_id)
+            if state is not None and state.state == 'unavailable':
+                continue
             if entity.disabled:
                 continue
             if entity.entity_category is not None and entity.entity_category == 'diagnostic':
