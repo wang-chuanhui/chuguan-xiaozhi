@@ -20,8 +20,12 @@ class ScreenLight(LightEntity):
         self._attr_device_info
         self._attr_unique_id = f"screen"
         self._attr_name = f"屏幕"
-        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
-        self._attr_color_mode = ColorMode.BRIGHTNESS
+        if realDevice.is_gateway == False:
+            self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+            self._attr_color_mode = ColorMode.BRIGHTNESS
+        else:
+            self._attr_supported_color_modes = {ColorMode.ONOFF}
+            self._attr_color_mode = ColorMode.ONOFF
         self._is_on = False
         self._brightness = 100
         # self.extra_state_attributes = {"cannot_turn_off": True, "cannot_turn_off_reason": "请使用按键关闭屏幕"}

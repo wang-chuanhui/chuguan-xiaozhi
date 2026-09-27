@@ -41,11 +41,10 @@ def read_config(path):
 
 config = read_config("/etc/cg-release")
 
-
 product_type = config.get("PRODUCT_TYPE", "")
-is_gateway = product_type == "gateway"
+is_gateway_0 = product_type == "gateway"
 
-display_name = "HA网关" if is_gateway else "HA屏"
+display_name = "HA网关" if is_gateway_0 else "HA屏"
 
 
 class RealDevice:
@@ -68,7 +67,8 @@ class RealDevice:
 
     is_monitor = False
 
-    has_radar_key = is_gateway != True
+    is_gateway = False
+    has_radar_key = is_gateway_0 != True
     has_speaker = True
     has_screen = True
 
@@ -82,6 +82,7 @@ class RealDevice:
         self.hass: HomeAssistant | None = None
         self.store: MyStore | None = None
         self.target_name: str | None = None
+        self.is_gateway = is_gateway_0
 
 
     async def start(self, hass: HomeAssistant):
