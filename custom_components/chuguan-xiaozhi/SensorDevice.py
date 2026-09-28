@@ -105,7 +105,7 @@ class PresenceBinarySensor(BinarySensorEntity):
 class DistanceSensor(SensorEntity):
     """距离传感器（支持运动和存在距离）"""
     _attr_device_class = SensorDeviceClass.DISTANCE
-    _attr_native_unit_of_measurement = "cm"
+    _attr_native_unit_of_measurement = "m"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, name: str, distance_type: KeyType):
@@ -120,7 +120,7 @@ class DistanceSensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._distance
+        return self._distance / 100
     
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
@@ -176,14 +176,14 @@ class SettingNumber(NumberEntity):
             self._native_value = 12 - 4
             self._attr_mode = NumberMode.SLIDER
         elif "distance" in key:  # 距离阈值 (最小/最大值)
-            self._attr_native_min_value = 100
-            self._attr_native_max_value = 500
-            self._attr_native_step = 1
+            self._attr_native_min_value = 1
+            self._attr_native_max_value = 5
+            self._attr_native_step = 0.1
             if 'min' in key:
-                self._native_value = 100
+                self._native_value = 1
             elif 'max' in key:
-                self._native_value = 300
-            self._attr_native_unit_of_measurement = "cm"
+                self._native_value = 3
+            self._attr_native_unit_of_measurement = "m"
             self._attr_device_class = NumberDeviceClass.DISTANCE
             self._attr_mode = NumberMode.SLIDER
         self._native_value = 0
@@ -197,20 +197,22 @@ class SettingNumber(NumberEntity):
         """当用户在 HA 界面拖动滑块或输入数值时触发"""
         # 将新参数写入底层硬件/雷达模块
         if "min" in self._key:
+            value = value * 100
             maxKey = self._key.replace('min', 'max')
             maxValue = await realDevice.getKV(maxKey)
             if maxValue != '' and maxValue != None:
                 if value > float(maxValue):
                     value = float(maxValue)
-                    if value == self._native_value:
+                    if value == self._native_value * 100:
                         value = value - 1
         elif "max" in self._key:
+            value = value * 100
             minKey = self._key.replace('max', 'min')
             minValue = await realDevice.getKV(minKey)
             if minValue != '' and minValue != None:
                 if value < float(minValue):
                     value = float(minValue)
-                    if value == self._native_value:
+                    if value == self._native_value * 100:
                         value = value + 1
         await realDevice.setKV(self._key, str(int(value)))
         await self.update_value()
@@ -221,6 +223,8 @@ class SettingNumber(NumberEntity):
             return
         if value == self._native_value:
             return
+        if "distance" in self._key:
+            value = float(value) / 100
         self._native_value = float(value)
         if self.hass:
             self.schedule_update_ha_state()
