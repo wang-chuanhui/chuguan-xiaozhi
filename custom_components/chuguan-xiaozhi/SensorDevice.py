@@ -120,6 +120,8 @@ class DistanceSensor(SensorEntity):
 
     @property
     def native_value(self):
+        if self._distance is None:
+            return None
         return self._distance / 100
     
     async def async_added_to_hass(self):
