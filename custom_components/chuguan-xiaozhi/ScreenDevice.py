@@ -6,6 +6,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from .chuguan.RealDevice import realDevice
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry, RegistryEntryHider
+from homeassistant.helpers import entity_registry as er
 
 from homeassistant.util.color import value_to_brightness, brightness_to_value
 
@@ -30,7 +31,11 @@ class ScreenLight(LightEntity):
         self._brightness = 100
         # self.extra_state_attributes = {"cannot_turn_off": True, "cannot_turn_off_reason": "请使用按键关闭屏幕"}
         self._attr_device_info = realDevice.device
-        self.entity_registry_visible_default = False
+        # self.entity_registry_visible_default = False
+        self._attr_entity_registry_visible_default = False
+
+    def get_initial_entity_options(self) -> er.EntityOptionsType | None:
+        return {"conversation":{"should_expose":True}}
 
     @property
     def is_on(self) -> bool:
@@ -43,7 +48,7 @@ class ScreenLight(LightEntity):
     def turn_on(self, **kwargs):
         set_screen_on(True)
         if ATTR_BRIGHTNESS in kwargs:
-            value_in_range = math.ceil(brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS]))
+            value_in_range = round(brightness_to_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS]))
             set_brightness(value_in_range)
             self._brightness = value_in_range
 
@@ -57,12 +62,12 @@ class ScreenLight(LightEntity):
         self._is_on = is_screen_on()
         self.async_write_ha_state()
         self._cancelable = async_track_time_interval(self.hass, self.update_brightness, timedelta(seconds=1))
-        if self.registry_entry and self.entity_id:
-            entity_registry = async_get_entity_registry(self.hass)
-            entity_registry.async_update_entity(
-                self.entity_id,
-                hidden_by=RegistryEntryHider.INTEGRATION
-            )
+        # if self.registry_entry and self.entity_id:
+        #     entity_registry = async_get_entity_registry(self.hass)
+        #     entity_registry.async_update_entity(
+        #         self.entity_id,
+        #         hidden_by=RegistryEntryHider.INTEGRATION
+        #     )
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity will be removed from hass."""
