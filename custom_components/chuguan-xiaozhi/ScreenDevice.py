@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 
 from homeassistant.util.color import value_to_brightness, brightness_to_value
 from homeassistant.components.number import NumberEntity, NumberDeviceClass
+from .chuguan.utils import show_entity_id
 
 BRIGHTNESS_SCALE = (1, 100)
 
@@ -139,6 +140,7 @@ class ScreenBrightnessNumber(NumberEntity):
         self._brightness = get_brightness()
         self.async_write_ha_state()
         self._cancelable = async_track_time_interval(self.hass, self.update_brightness, timedelta(seconds=1))
+        show_entity_id(self.entity_id, self.hass)
 
     def update_brightness(self, now):
         value = no_sudo_get_brightness()
