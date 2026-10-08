@@ -7,13 +7,15 @@ import asyncio
 from .SensorDevice import getAllNumber
 from .chuguan.RealDevice import realDevice
 from .chuguan.utils import show_entity_id
+from .ScreenDevice import getNumberDevice
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up the number platform."""
     volume = getVolumeNumber()
     numbers = getAllNumber()
-    async_add_entities([*volume, *numbers])
+    brightness = getNumberDevice()
+    async_add_entities([*volume, *numbers, *brightness])
 
 
 def getVolumeNumber():
@@ -31,9 +33,9 @@ class VolumeNumber(NumberEntity):
         self._attr_unique_id = f"volume"
         self._attr_name = f"音量"
         self._attr_device_class = NumberDeviceClass.VOLUME
-        self._attr_min_value = 0
-        self._attr_max_value = 100
-        self._attr_step = 1
+        self._attr_native_min_value = 0
+        self._attr_native_max_value = 100
+        self._attr_native_step = 1
         self._volume = 100
         self._muted = False
         self._monitor_process = None

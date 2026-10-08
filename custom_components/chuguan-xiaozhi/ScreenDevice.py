@@ -9,6 +9,7 @@ from homeassistant.helpers.entity_registry import async_get as async_get_entity_
 from homeassistant.helpers import entity_registry as er
 
 from homeassistant.util.color import value_to_brightness, brightness_to_value
+from homeassistant.components.number import NumberEntity, NumberDeviceClass
 
 BRIGHTNESS_SCALE = (1, 100)
 
@@ -101,3 +102,52 @@ def getScreenDevice():
         return []
     screen = ScreenLight()
     return [screen]
+
+def getNumberDevice():
+    if realDevice.has_screen_brightness == False:
+        return []
+    return [ScreenBrightnessNumber()]
+
+
+class ScreenBrightnessNumber(NumberEntity):
+    """A screen brightness number entity."""
+
+    def __init__(self):
+        super().__init__()
+        self._attr_unique_id = f"screen_brightness"
+        self._attr_name = f"屏幕亮度"
+        self._attr_native_min_value = 1
+        self._attr_native_max_value = 100
+        self._attr_native_step = 1
+        self._brightness = get_brightness()
+        self._cancelable = None
+        self._attr_device_info = realDevice.device
+        self._attr_icon = "mdi:brightness-6"
+
+    @property
+    def native_value(self):
+        return self._brightness
+    
+    async def async_set_native_value(self, value: float) -> None:
+        """Update the current value."""
+        set_brightness(int(value))
+        self._brightness = int(value)
+
+    async def async_added_to_hass(self) -> None:
+        """Entity added to hass."""
+        await super().async_added_to_hass()
+        self._brightness = get_brightness()
+        self.async_write_ha_state()
+        self._cancelable = async_track_time_interval(self.hass, self.update_brightness, timedelta(seconds=1))
+
+    def update_brightness(self, now):
+        value = no_sudo_get_brightness()
+        change = False
+        if value != self._brightness:
+            self._brightness = value
+            change = True
+        if change:
+            self.hass.loop.call_soon_threadsafe(self._update_brightness)
+
+    def _update_brightness(self):
+        self.async_write_ha_state()

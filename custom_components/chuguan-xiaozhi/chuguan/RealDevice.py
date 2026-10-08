@@ -71,6 +71,7 @@ class RealDevice:
     has_radar_key = is_gateway_0 != True
     has_speaker = True
     has_screen = True
+    has_screen_brightness = True
 
     def __init__(self):
         """"""
@@ -83,6 +84,8 @@ class RealDevice:
         self.store: MyStore | None = None
         self.target_name: str | None = None
         self.is_gateway = is_gateway_0
+        if self.is_gateway:
+            self.has_screen_brightness = False
 
 
     async def start(self, hass: HomeAssistant):
