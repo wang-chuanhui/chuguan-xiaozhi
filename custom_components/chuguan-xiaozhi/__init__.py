@@ -9,7 +9,7 @@ import logging
 from .chuguan.hub import Hub, getHub
 from .chuguan.const import DOMAIN
 from .http import CGAPIConfigView
-
+from .ttyd import async_setup_ttyd
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,9 +57,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
         entry.runtime_data = hub
         await hub.setup()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        await async_setup_ttyd(hass)
         return True
     except Exception as e:
-        hub.stop()
+        await hub.stop()
         _LOGGER.error("start failed %s", e)
         raise ConfigEntryAuthFailed from e
 
