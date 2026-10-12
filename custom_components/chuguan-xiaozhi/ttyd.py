@@ -17,7 +17,7 @@ DOMAIN = "ttyd_proxy"
 _LOGGER = logging.getLogger(__name__)
 
 # ttyd 地址
-TTYD_HOST = "192.168.0.173"
+TTYD_HOST = "127.0.0.1"
 TTYD_PORT = 7681
 
 # 浏览器访问的前缀，不要在开头或结尾添加斜杠
@@ -31,7 +31,7 @@ class TTYDProxyView(HomeAssistantView):
 
     url = "/api/ttyd_proxy/{path:.*}"
     name = "api:ttyd_proxy"
-    requires_auth = True
+    requires_auth = False
 
     async def get(
         self, request: web.Request, path: str = ""
