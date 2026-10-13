@@ -191,7 +191,7 @@ class TTYDProxyView(HomeAssistantView):
                 headers=headers,
                 protocols=("tty",),
                 heartbeat=None,
-                autoping=True,
+                autoping=False,
                 autoclose=False,
                 max_msg_size=0,
             )
@@ -234,6 +234,9 @@ class TTYDProxyView(HomeAssistantView):
                                 ttyd_ws.exception(),
                             )
                             break
+                        elif message.type == WSMsgType.PING:
+                            await ttyd_ws.pong(message.data)
+                            await browser_ws.ping(message.data)
                         elif message.type in (WSMsgType.CLOSE, WSMsgType.CLOSED):
                             break
                 except asyncio.CancelledError:
