@@ -28,7 +28,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hub = getHub(hass)
     try:
         hass.http.register_view(CGAPIConfigView)
-        # hass.http.register_view(CGSystemInfoView)
+        hass.http.register_view(CGSystemInfoView)
         await hub.setup()
         hass.data[DOMAIN] = {
             "hub": hub,
