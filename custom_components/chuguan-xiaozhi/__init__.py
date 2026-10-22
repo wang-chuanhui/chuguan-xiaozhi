@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 import logging
 from .chuguan.hub import Hub, getHub
 from .chuguan.const import DOMAIN
-from .http import CGAPIConfigView
+from .http import CGAPIConfigView, CGSystemInfoView
 from .ttyd import async_setup_ttyd
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hub = getHub(hass)
     try:
         hass.http.register_view(CGAPIConfigView)
+        # hass.http.register_view(CGSystemInfoView)
         await hub.setup()
         hass.data[DOMAIN] = {
             "hub": hub,
