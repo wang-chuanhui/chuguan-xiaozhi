@@ -176,6 +176,8 @@ class Hub:
         entity_registry = async_get_entity_registry(self.hass)
         entities = list(entity_registry.entities.values())
         for entity in entities:
+            if entity.platform != 'chuguan-xiaozhi':
+                continue
             state = self.hass.states.get(entity.entity_id)
             if state is not None and state.state == 'unavailable':
                 entity_registry.async_update_entity(entity_id=entity.entity_id, hidden_by=RegistryEntryHider.INTEGRATION)
